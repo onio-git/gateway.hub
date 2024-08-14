@@ -32,7 +32,7 @@ class null(PluginInterface):
                         "conductivity": round(device.data['data']['conductivity'], 2)
                     }
                 }
-                logging.info(f"Sending data to API: {jsn_data}")
+                
                 api.send_collected_data(jsn_data)
             except Exception as e:
                 logging.error(f"Error sending data to API: {str(e)}")

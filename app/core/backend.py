@@ -166,16 +166,16 @@ class ApiBackend():
         if self.api_token == "":
             logging.error("No API token found. Cannot send collected data")
             return False
-
-        json_data = data
+        
+        logging.info(f"Sending data to API: {data}")
         headers = self.get_headers(include_auth_token=True)
-        response_data = self.make_api_request(self.config.get('endpoints', 'send_data_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
+        response_data = self.make_api_request(self.config.get('endpoints', 'send_data_ep'), data, headers, int(self.config.get('settings', 'http_timeout')))
         
 
         if response_data['statusCode'] == 200:
             return True
         else:
             logging.error("Failed to send collected data to server")
-            logging.debug(json_data)
+            logging.debug(data)
             logging.debug(response_data)
             return False

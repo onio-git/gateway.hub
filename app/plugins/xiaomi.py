@@ -1,9 +1,9 @@
 import logging
 from core.plugin_interface import PluginInterface
 from core.backend import ApiBackend
-from core.ble_manager import BLEManager
 import asyncio
 from bleak import BleakClient
+from datetime import datetime
 
 
 # class name must match the file name
@@ -13,12 +13,29 @@ class xiaomi(PluginInterface):
         self.devices = {}
         self.plugin_active = False
 
-    def execute(self, api: ApiBackend, ble_manager: BLEManager):
+    def execute(self, api: ApiBackend) -> None:
         if self.plugin_active: # prevent multiple instances of the plugin from running at the same time
             return
         self.plugin_active = True
         for _, device in self.devices.items():
-            asyncio.run(device.connect_and_read())
+            data = asyncio.run(device.connect_and_read())
+            if not data:
+                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+                continue
+            jsn_data = {
+                "device_id": device.mac_address,
+                "device_name": device.device_name,
+                "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                "firmware": device.firmware,
+                "data": { # limit decimals to 2
+                    "temperature": round(data['temperature'], 2),
+                    "brightness": round(data['brightness'], 2),
+                    "moisture": round(data['moisture'], 2),
+                    "conductivity": round(data['conductivity'], 2),
+                    "energy": round(data['energy'], 2)
+                }
+            }
+            api.send_collected_data(jsn_data)
         self.plugin_active = False
 
     def display_devices(self):
@@ -73,11 +90,15 @@ class xiaomi(PluginInterface):
                 self.firmware = battery[2:7].decode('utf-8')
 
                 self.print_data()
+            except KeyboardInterrupt:
+                return None
             except Exception as e:
                 pass
             finally:
                 await self.client.disconnect()
                 logging.info(f"Disconnected from {self.mac_address} - {self.device_name}")
+                return self.data
+
 
         def print_data(self):
             print("Xiaomi Device Data:")

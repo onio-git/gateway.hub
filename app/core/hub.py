@@ -62,9 +62,6 @@ class Hub:
     
 
     def loop(self, auto_collect, period=5):
-        command = self.api.ping_server()
-        if self.command == "":
-            self.command = command
             
         while True:
             try:                
@@ -99,7 +96,7 @@ class Hub:
                 
                 self.command = ""
                 time.sleep(period)
-                self.api.ping_server()
+                self.command = self.api.ping_server()
                 
 
 
@@ -137,5 +134,5 @@ class Hub:
 
     def execute_plugins(self):
         for plugin in self.plugins:
-            thread = threading.Thread(target=plugin.execute, args=(self.api, self.ble_manager))
+            thread = threading.Thread(target=plugin.execute, args=(self.api,))
             thread.start()
