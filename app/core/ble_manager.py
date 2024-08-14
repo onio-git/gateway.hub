@@ -8,18 +8,6 @@ class BLEManager:
     def __init__(self):
         self.scanner = BleakScanner()
         pass
-
-
-
-    async def scan_devices(self, timeout=5): # Unused
-        self.devices = []
-        devices = await BleakScanner.discover(timeout=timeout, return_adv=True)
-        for device in devices:
-            self.devices.append(device)
-        logging.info(f"Found {len(self.devices)} devices")
-        logging.debug("Devices:")
-        self.list_devices()
-        return self.devices
     
 
     async def scan_by_plugin(self, plugin, timeout=5) -> list:
@@ -33,7 +21,7 @@ class BLEManager:
             self.list_devices(plugin)
             return 
 
-        def filter_func(result) -> bool:
+        def filter_func(result: tuple) -> bool:
             _, adv_data = result
             if search.scan_filter_method == 'device_name':
                 if adv_data.local_name and search.scan_filter in adv_data.local_name:

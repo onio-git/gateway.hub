@@ -13,7 +13,7 @@ class null(PluginInterface):
         self.protocol = "BLE"
         self.devices = {}
 
-    def execute(self, api: ApiBackend, ble_manager: BLEManager):
+    def execute(self, api: ApiBackend, ble_manager: BLEManager) -> None:
         for _, device in self.devices.items():
             logging.info("Executing null sensor plugin")
             device.generate_emulated_data()
@@ -37,7 +37,7 @@ class null(PluginInterface):
             except Exception as e:
                 logging.error(f"Error sending data to API: {str(e)}")
 
-    def display_devices(self):
+    def display_devices(self) -> None:
         for id, device in self.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
 
@@ -75,7 +75,7 @@ class null(PluginInterface):
                 }
             }
 
-        def generate_mac(self, serial_no):
+        def generate_mac(self, serial_no) -> str:
             # Generate a deterministic MAC address based on the serial number
             hash_object = md5(serial_no.encode())
             hash_hex = hash_object.hexdigest()
@@ -83,7 +83,7 @@ class null(PluginInterface):
             mac_address = ':'.join(mac_parts)
             return mac_address
 
-        def generate_emulated_data(self):
+        def generate_emulated_data(self) -> None:
             current_time = datetime.now()
 
             # "cosine wave" pattern for the temperature data point based on the minutes value

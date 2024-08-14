@@ -30,7 +30,7 @@ class Hub:
         self.password = password if password != '' else self.config.get('settings', 'wifi_password')
         self.command = ""
         
-        self.load_plugin("null") # Sensor emulator plugin 
+        # self.load_plugin("null") # Sensor emulator plugin 
         # self.load_plugin("philips_hue") # Philips hue experimental plugin
         self.load_plugin("xiaomi") # Xiaomi experimental plugin
 
@@ -62,9 +62,12 @@ class Hub:
     
 
     def loop(self, auto_collect, period=5):
+        command = self.api.ping_server()
+        if self.command == "":
+            self.command = command
+            
         while True:
-            try:
-                
+            try:                
                 if self.command == "rebooting":
                     logging.info("Rebooting...")
                     self.shutdown()
@@ -96,7 +99,8 @@ class Hub:
                 
                 self.command = ""
                 time.sleep(period)
-                self.command = self.api.ping_server()
+                self.api.ping_server()
+                
 
 
             except KeyboardInterrupt:

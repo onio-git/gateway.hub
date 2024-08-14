@@ -1,7 +1,5 @@
 import json
 import requests
-import time
-import subprocess
 import logging
 from config.config import ConfigSettings
 
@@ -19,7 +17,7 @@ class ApiBackend():
     
     
     
-    def get_headers(self, include_auth_token=False):
+    def get_headers(self, include_auth_token=False) -> dict:
         headers = {
             'x-app-id': self.config.get('headers', 'x_app_id'),
             'x-app-secret': self.config.get('headers', 'x_app_secret')
@@ -29,13 +27,13 @@ class ApiBackend():
         return headers
 
 
-    def make_api_request(self, endpoint, json_data, headers, timeout):
+    def make_api_request(self, endpoint, json_data, headers, timeout) -> json:
         url = self.config.get('server', 'server_url') + endpoint
         response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
         return json.loads(response.text)
 
 
-    def get_token(self, serial_hash: str):
+    def get_token(self, serial_hash: str) -> bool:
         json_data = {'serial_number': serial_hash}
         headers = self.get_headers()
         response_data = self.make_api_request(self.config.get('endpoints', 'auth_fetch_token_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
@@ -51,7 +49,7 @@ class ApiBackend():
             return False
 
 
-    def refresh_token(self, refresh_token: str):
+    def refresh_token(self, refresh_token: str) -> bool:
         json_data = {'refresh_token': refresh_token}
         headers = self.get_headers()
         response_data = self.make_api_request(self.config.get('endpoints', 'auth_refresh_token_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
@@ -67,7 +65,7 @@ class ApiBackend():
             return False
 
 
-    def ping_server(self):
+    def ping_server(self) -> str:
         if self.api_token == "":
             logging.error("No API token found. Cannot ping server")
             return False
@@ -86,10 +84,10 @@ class ApiBackend():
             logging.error("Failed to ping server")
             logging.debug(json_data)
             logging.debug(response_data)
-            return False
+            return ""
 
 
-    def gapi_geolocation(self, local_ap_list: json):
+    def gapi_geolocation(self, local_ap_list: json) -> bool:
         gapi_url = self.config.get('server', 'gapi_url') + self.config.get('server', 'gapi_key')
         response = requests.post(gapi_url, json=local_ap_list, timeout=int(self.config.get('settings', 'http_timeout')))
         response_data = json.loads(response.text)
@@ -102,7 +100,7 @@ class ApiBackend():
             return False
 
 
-    def set_location(self):
+    def set_location(self) -> bool:
         if self.api_token == "":
             logging.error("No API token found. Cannot set location")
             return False
@@ -129,7 +127,7 @@ class ApiBackend():
             return False
         
     
-    def post_scan_results(self, plugins: list):
+    def post_scan_results(self, plugins: list) -> bool:
         if self.api_token == "":
             logging.error("No API token found. Cannot post scan results")
             return False
@@ -164,7 +162,7 @@ class ApiBackend():
             return False
         
     
-    def send_collected_data(self, data: json):
+    def send_collected_data(self, data: json) -> bool:
         if self.api_token == "":
             logging.error("No API token found. Cannot send collected data")
             return False
