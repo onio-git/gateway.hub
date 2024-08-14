@@ -13,7 +13,7 @@ class null(PluginInterface):
         self.protocol = "BLE"
         self.devices = {}
 
-    def execute(self, api: ApiBackend, ble_manager: BLEManager) -> None:
+    def execute(self, api: ApiBackend) -> None:
         for _, device in self.devices.items():
             logging.info("Executing null sensor plugin")
             device.generate_emulated_data()
