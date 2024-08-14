@@ -13,8 +13,8 @@ from log.log import setup_logging
 @click.option('--password', help='The password of the wifi network to connect to', default='')
 @click.option('--log-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical']), default='info', help='Set the log level')
 @click.option('--serial-number', help='The serial number of the hub', default='')
-@click.option('--auto-scan', help='Automatically scan for devices', default=False)
-@click.option('--auto-collect', help='Automatically collect data from emulator device', default=False)
+@click.option('--auto-scan', help='Automatically scan for devices', default=False, is_flag=True)
+@click.option('--auto-collect', help='Automatically collect data from emulator device', default=False, is_flag=True)
 
 
 def main(ssid, password, log_level, serial_number, auto_scan, auto_collect):
