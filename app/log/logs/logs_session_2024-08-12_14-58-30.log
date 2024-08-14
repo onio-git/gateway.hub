@@ -1,0 +1,17 @@
+2024-08-12 14:58:30,335 - INFO - [main] - Starting Smart Hub...
+2024-08-12 14:58:30,357 - INFO - [load_plugin] - Plugin loaded: null_plugin
+2024-08-12 14:58:30,384 - INFO - [connect] - Assuming Wi-Fi network connectivity on PC.
+2024-08-12 14:58:34,226 - INFO - [startup] - Successfully geolocated with Google API
+2024-08-12 14:58:34,437 - INFO - [startup] - Successfully retrieved token from server
+2024-08-12 14:58:34,555 - INFO - [startup] - Successfully updated hub location
+2024-08-12 14:58:34,555 - INFO - [startup] - Startup complete... Beginning main routine
+
+2024-08-12 14:58:44,765 - INFO - [ping_server] - Received command: scan_devices
+2024-08-12 14:58:44,773 - INFO - [loop] - Scanning for devices...
+2024-08-12 14:59:05,119 - INFO - [scan_devices_by_products] - Found 0 devices:
+2024-08-12 14:59:05,126 - INFO - [scan_devices_by_products] - Adding emulators:
+2024-08-12 14:59:05,127 - INFO - [scan_devices_by_products] -    23:de:ad:be:ef:23 - Thermo-Sense - Thermometer Sensor (Emulator)
+2024-08-12 14:59:05,364 - INFO - [scan_devices_by_products] - Scan complete... Returning to main routine
+
+2024-08-12 14:59:25,785 - WARNING - [loop] - Keyboard Interrupt
+2024-08-12 14:59:25,794 - INFO - [main] - Exiting Smart Hub... End of Program

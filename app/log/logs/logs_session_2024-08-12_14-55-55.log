@@ -1,0 +1,16 @@
+2024-08-12 14:55:55,122 - INFO - [main] - Starting Smart Hub...
+2024-08-12 14:55:55,123 - INFO - [load_plugin] - Plugin loaded: null_plugin
+2024-08-12 14:55:55,127 - INFO - [connect] - Assuming Wi-Fi network connectivity on PC.
+2024-08-12 14:55:55,257 - INFO - [startup] - Successfully geolocated with Google API
+2024-08-12 14:55:55,474 - INFO - [startup] - Successfully retrieved token from server
+2024-08-12 14:55:55,595 - INFO - [startup] - Successfully updated hub location
+2024-08-12 14:55:55,596 - INFO - [startup] - Startup complete... Beginning main routine
+
+2024-08-12 14:55:55,596 - INFO - [loop] - Automatically executing plugins
+2024-08-12 14:55:55,598 - INFO - [execute] - Executing null sensor plugin
+2024-08-12 14:55:55,598 - INFO - [execute] - Data from Thermo-Sense: {'temperature': 29.330127018922195, 'humidity': 50, 'energy': 5, 'brightness': 127.50000000000009, 'conductivity': 148.75}
+2024-08-12 14:56:05,774 - INFO - [loop] - Automatically executing plugins
+2024-08-12 14:56:05,776 - INFO - [execute] - Executing null sensor plugin
+2024-08-12 14:56:05,777 - INFO - [execute] - Data from Thermo-Sense: {'temperature': 29.567727288213007, 'humidity': 50, 'energy': 5, 'brightness': 151.28215601567095, 'conductivity': 148.75}
+2024-08-12 14:56:07,132 - WARNING - [loop] - Keyboard Interrupt
+2024-08-12 14:56:07,133 - INFO - [main] - Exiting Smart Hub... End of Program
