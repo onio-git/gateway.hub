@@ -5,6 +5,12 @@ import asyncio
 from bleak import BleakClient
 from datetime import datetime
 
+# Xiaomi service and characteristic UUIDs
+SERVIDE_UUID = "00001204-0000-1000-8000-00805f9b34fb"
+ACCESS_CHAR_UUID = "00001a00-0000-1000-8000-00805f9b34fb"
+READ_DATA_UUID = "00001a01-0000-1000-8000-00805f9b34fb"
+READ_BATTERY_UUID = "00001a02-0000-1000-8000-00805f9b34fb"
+
 
 # class name must match the file name
 class xiaomi(PluginInterface):
@@ -38,7 +44,7 @@ class xiaomi(PluginInterface):
             api.send_collected_data(jsn_data)
         self.plugin_active = False
 
-    def display_devices(self):
+    def display_devices(self) -> None:
         for id, device in self.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
 
@@ -59,45 +65,38 @@ class xiaomi(PluginInterface):
             self.com_protocol = "BLE"
             self.firmware = ""
             self.device_description = 'Temperature, humidity and brightness sensor'
-
-            # Xiaomi service and characteristic UUIDs
-            self.service_uuid = "00001204-0000-1000-8000-00805f9b34fb"
-            self.access_char_uuid = "00001a00-0000-1000-8000-00805f9b34fb"
-            self.read_data_uuid = "00001a01-0000-1000-8000-00805f9b34fb"
-            self.read_battery_uuid = "00001a02-0000-1000-8000-00805f9b34fb"
-
-            self.client = BleakClient(mac_address)
             self.data = {}
 
         async def connect_and_read(self):
-            try:
-                await self.client.connect()
-                logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+            async with BleakClient(self.mac_address) as client:
+                try:
+                    await client.connect()
+                    logging.info(f"Connected to {self.mac_address} - {self.device_name}")
 
-                # Write to access characteristic
-                await self.client.write_gatt_char(self.access_char_uuid, bytearray([0xA0, 0x1F]))
+                    # Write to access characteristic
+                    await client.write_gatt_char(ACCESS_CHAR_UUID, bytearray([0xA0, 0x1F]))
 
-                # Read data characteristic
-                data = await self.client.read_gatt_char(self.read_data_uuid)
-                self.data['temperature'] = int.from_bytes(data[0:2], byteorder='little') / 10.0
-                self.data['brightness'] = int.from_bytes(data[3:7], byteorder='little')
-                self.data['moisture'] = data[7]
-                self.data['conductivity'] = int.from_bytes(data[8:10], byteorder='little')
+                    # Read data characteristic
+                    data = await client.read_gatt_char(READ_DATA_UUID)
+                    self.data['temperature'] = int.from_bytes(data[0:2], byteorder='little') / 10.0
+                    self.data['brightness'] = int.from_bytes(data[3:7], byteorder='little')
+                    self.data['moisture'] = data[7]
+                    self.data['conductivity'] = int.from_bytes(data[8:10], byteorder='little')
 
-                # Read battery characteristic
-                battery = await self.client.read_gatt_char(self.read_battery_uuid)
-                self.data['energy'] = battery[0]
-                self.firmware = battery[2:7].decode('utf-8')
+                    # Read battery characteristic
+                    battery = await client.read_gatt_char(READ_BATTERY_UUID)
+                    self.data['energy'] = battery[0]
+                    self.firmware = battery[2:7].decode('utf-8')
 
-                self.print_data()
-            except KeyboardInterrupt:
-                return None
-            except Exception as e:
-                pass
-            finally:
-                await self.client.disconnect()
-                logging.info(f"Disconnected from {self.mac_address} - {self.device_name}")
-                return self.data
+                    self.print_data()
+                except KeyboardInterrupt:
+                    return None
+                except Exception as e:
+                    pass
+                finally:
+                    await client.disconnect()
+                    logging.info(f"Disconnected from {self.mac_address} - {self.device_name}")
+                    return self.data
 
 
         def print_data(self):
