@@ -30,8 +30,8 @@ class Hub:
         self.password = password if password != '' else self.config.get('settings', 'wifi_password')
         self.command = ""
         
-        # self.load_plugin("null") # Sensor emulator plugin 
-        self.load_plugin("philips_hue") # Philips hue experimental plugin
+        self.load_plugin("null") # Sensor emulator plugin 
+        # self.load_plugin("philips_hue") # Philips hue experimental plugin 
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
 
 

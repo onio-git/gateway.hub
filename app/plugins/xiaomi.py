@@ -68,35 +68,35 @@ class xiaomi(PluginInterface):
             self.data = {}
 
         async def connect_and_read(self):
-            async with BleakClient(self.mac_address) as client:
-                try:
-                    await client.connect()
-                    logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+            client = BleakClient(self.mac_address)
+            try:
+                await client.connect()
+                logging.info(f"Connected to {self.mac_address} - {self.device_name}")
 
-                    # Write to access characteristic
-                    await client.write_gatt_char(ACCESS_CHAR_UUID, bytearray([0xA0, 0x1F]))
+                # Write to access characteristic
+                await client.write_gatt_char(ACCESS_CHAR_UUID, bytearray([0xA0, 0x1F]))
 
-                    # Read data characteristic
-                    data = await client.read_gatt_char(READ_DATA_UUID)
-                    self.data['temperature'] = int.from_bytes(data[0:2], byteorder='little') / 10.0
-                    self.data['brightness'] = int.from_bytes(data[3:7], byteorder='little')
-                    self.data['moisture'] = data[7]
-                    self.data['conductivity'] = int.from_bytes(data[8:10], byteorder='little')
+                # Read data characteristic
+                data = await client.read_gatt_char(READ_DATA_UUID)
+                self.data['temperature'] = int.from_bytes(data[0:2], byteorder='little') / 10.0
+                self.data['brightness'] = int.from_bytes(data[3:7], byteorder='little')
+                self.data['moisture'] = data[7]
+                self.data['conductivity'] = int.from_bytes(data[8:10], byteorder='little')
 
-                    # Read battery characteristic
-                    battery = await client.read_gatt_char(READ_BATTERY_UUID)
-                    self.data['energy'] = battery[0]
-                    self.firmware = battery[2:7].decode('utf-8')
+                # Read battery characteristic
+                battery = await client.read_gatt_char(READ_BATTERY_UUID)
+                self.data['energy'] = battery[0]
+                self.firmware = battery[2:7].decode('utf-8')
 
-                    self.print_data()
-                except KeyboardInterrupt:
-                    return None
-                except Exception as e:
-                    pass
-                finally:
-                    await client.disconnect()
-                    logging.info(f"Disconnected from {self.mac_address} - {self.device_name}")
-                    return self.data
+                self.print_data()
+            except KeyboardInterrupt:
+                return None
+            except Exception as e:
+                pass
+            finally:
+                await client.disconnect()
+                logging.info(f"Disconnected from {self.mac_address} - {self.device_name}")
+                return self.data
 
 
         def print_data(self):
