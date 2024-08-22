@@ -29,7 +29,11 @@ class ApiBackend():
 
     def make_api_request(self, endpoint, json_data, headers, timeout) -> json:
         url = self.config.get('server', 'server_url') + endpoint
-        response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
+        logging.debug(f"Making request to: {url}")
+        if json_data == None:
+            response = requests.get(url, headers=headers, timeout=timeout)
+        else:
+            response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
         return json.loads(response.text)
 
 
@@ -167,7 +171,7 @@ class ApiBackend():
             logging.error("No API token found. Cannot send collected data")
             return False
         
-        logging.info(f"Sending data to API: {data}")
+        logging.info(f"Sending data to API: {data['data']}")
         headers = self.get_headers(include_auth_token=True)
         response_data = self.make_api_request(self.config.get('endpoints', 'send_data_ep'), data, headers, int(self.config.get('settings', 'http_timeout')))
         
@@ -178,4 +182,21 @@ class ApiBackend():
             logging.error("Failed to send collected data to server")
             logging.debug(data)
             logging.debug(response_data)
+            return False
+        
+
+    def get_flow(self) -> json:
+        if self.api_token == "":
+            logging.error("No API token found. Cannot get flow")
+            return False
+        
+        headers = self.get_headers(include_auth_token=True)
+
+        response_data = self.make_api_request(self.config.get('endpoints', 'get_flow_ep') + "?flow-type=json", None, headers, int(self.config.get('settings', 'http_timeout')))
+
+        if response_data['statusCode'] == 200:
+            return response_data['data']
+        else:
+            logging.debug(response_data)
+            logging.error("Failed to get flow from server")
             return False

@@ -13,6 +13,7 @@ class BLEManager:
     async def scan_by_plugin(self, plugin, timeout=5) -> list:
         logging.info("Scanning for devices in plugin: " + plugin.__class__.__name__ + "...")
         search = plugin.SearchableDevice()
+        logging.info(f"Filtering by: {search.scan_filter_method} - {search.scan_filter}")
 
         if search.scan_filter_method == 'emulator':
             logging.info("Adding emulators:")
@@ -52,6 +53,8 @@ class BLEManager:
     def list_devices(self, plugin) -> None:
         for id, device in plugin.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
+        if not plugin.devices:
+            logging.info("  No devices found.")
 
 
 

@@ -8,9 +8,10 @@ import logging
 import asyncio
 from hashlib import md5
 from config.config import ConfigSettings
-from core.wifi_manager import WifiManager
-from core.ble_manager import BLEManager
+from core.wifi import WifiManager
+from core.ble import BLEManager
 from core.backend import ApiBackend
+from core.flow import Flow
 
 class Hub:
     def __init__(self, ssid, password, serial_no):
@@ -21,29 +22,30 @@ class Hub:
         self.serial = serial_no
         self.serial_hash = md5(self.serial.encode()).hexdigest() # Hash the serial number for security
         
-        self.wifi_manager = WifiManager()
+        self.wifi = WifiManager()
         self.api = ApiBackend()
-        self.ble_manager = BLEManager()
+        self.ble = BLEManager()
+        self.flow = Flow()
         
         # Get wifi credentials from config file if not provided by cli
         self.ssid = ssid if ssid != '' else self.config.get('settings', 'wifi_ssid')
         self.password = password if password != '' else self.config.get('settings', 'wifi_password')
         self.command = ""
         
-        self.load_plugin("null") # Sensor emulator plugin 
+        # self.load_plugin("null") # Sensor emulator plugin 
         # self.load_plugin("philips_hue") # Philips hue experimental plugin 
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
-
+        # self.load_plugin("flic") # Flic plugin
 
     def startup(self):
         # Connect to wifi
         # deal with wifi AP to get wifi credentials
 
-        if not self.wifi_manager.connected:
-            self.wifi_manager.connect(self.ssid, self.password)
+        if not self.wifi.connected:
+            self.wifi.connect(self.ssid, self.password)
         
         # Disable this to avoid unnecessary geolocation requests and costs.
-        # local_ap_list = self.wifi_manager.scan_wifi_networks()
+        # local_ap_list = self.wifi.scan_wifi_networks()
         # if local_ap_list is not None:
         #     if self.api.gapi_geolocation(local_ap_list):
         #         logging.info("Successfully geolocated with Google API")
@@ -56,6 +58,9 @@ class Hub:
 
         if self.api.set_location(): 
             logging.info("Successfully updated hub location")
+
+        if self.flow.set_flow(self.api.get_flow()):
+            logging.info("Successfully retrieved flow")
 
         logging.info("Startup complete... Beginning main routine\n")
         return True
@@ -73,7 +78,7 @@ class Hub:
                 elif self.command == "scan_devices":
                     for plugin in self.plugins:
                         if plugin.protocol == 'BLE':
-                            asyncio.run(self.ble_manager.scan_by_plugin(plugin, timeout=5))
+                            asyncio.run(self.ble.scan_by_plugin(plugin, timeout=10))
                             
                         elif plugin.protocol == 'WiFi':
                             pass

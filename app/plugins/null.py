@@ -4,7 +4,6 @@ from config.config import ConfigSettings
 from datetime import datetime
 from math import sin, cos, pi
 from core.backend import ApiBackend
-from core.ble_manager import BLEManager
 import random
 from hashlib import md5
 
@@ -41,15 +40,13 @@ class null(PluginInterface):
         for id, device in self.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
 
-    class SearchableDevice:
+    class SearchableDevice(PluginInterface.SearchableDeviceInterface):
         def __init__(self):
-            self.device_description = "Thermometer Sensor (Emulator)"
             self.protocol = "BLE"
-            self.model_no = "onio-0005"
             self.scan_filter_method = "emulator"
             self.scan_filter = "none"
 
-    class Device:
+    class Device(PluginInterface.DeviceInterface):
         def __init__(self):
             self.config = ConfigSettings()
             self.manufacturer = "ONiO"

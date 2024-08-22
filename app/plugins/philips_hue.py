@@ -65,13 +65,13 @@ class philips_hue(PluginInterface):
         for id, device in self.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
 
-    class SearchableDevice:
+    class SearchableDevice(PluginInterface.SearchableDeviceInterface):
         def __init__(self):
             self.protocol = "BLE"
             self.scan_filter_method = "uuid"
             self.scan_filter = "0000fe0f-0000-1000-8000-00805f9b34fb"
 
-    class Device:
+    class Device(PluginInterface.DeviceInterface):
         def __init__(self, mac_address, device_name):
             self.mac_address = mac_address
             self.device_name = device_name
