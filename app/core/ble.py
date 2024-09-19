@@ -17,8 +17,6 @@ class BLEManager:
 
         if search.scan_filter_method == 'emulator':
             logging.info("Adding emulators:")
-            new_emulator = plugin.Device()
-            plugin.devices[new_emulator.mac_address] = new_emulator
             self.list_devices(plugin)
             return 
 

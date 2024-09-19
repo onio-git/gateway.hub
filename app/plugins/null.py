@@ -1,40 +1,60 @@
 import logging
 from core.plugin_interface import PluginInterface
-from config.config import ConfigSettings
+from config.config import ConfigSettings as config
 from datetime import datetime
 from math import sin, cos, pi
 from core.backend import ApiBackend
 import random
 from hashlib import md5
+import yaml
+import os
 
 class null(PluginInterface):
     def __init__(self):
         self.protocol = "BLE"
         self.devices = {}
+        self.config = config()
+
+        # Read the sensor configuration file path from the main config
+        config_file_path = self.config.get('settings', 'sensor_config_file')
+
+        # Load sensor configurations from the YAML file
+        with open(config_file_path, 'r') as f:
+            sensor_configs = yaml.safe_load(f)
+
+        for sensor_info in sensor_configs['sensors']:
+            device = self.Device(sensor_info)
+            self.devices[device.mac_address] = device
 
     def execute(self, api: ApiBackend) -> None:
         for _, device in self.devices.items():
-            logging.info("Executing null sensor plugin")
-            device.generate_emulated_data()
-            logging.debug(f"Data from {device.device_name}: {device.data}")
-            try:
-                jsn_data = {
-                    "device_id": device.mac_address,
-                    "device_name": device.device_name,
-                    "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                    "firmware": device.firmware,
-                    "data": { # limit decimals to 2
-                        "temperature": round(device.data['data']['temperature'], 2),
-                        "humidity": round(device.data['data']['humidity'], 2),
-                        "energy": round(device.data['data']['energy'], 2),
-                        "brightness": round(device.data['data']['brightness'], 2),
-                        "conductivity": round(device.data['data']['conductivity'], 2)
+            current_time = datetime.now()
+            if device.last_execution_time is None or \
+               (current_time - device.last_execution_time).total_seconds() >= device.interval:
+                logging.info(f"Executing for device {device.device_name}")
+                device.generate_emulated_data()
+                device.last_execution_time = current_time
+                logging.debug(f"Data from {device.device_name}: {device.data}")
+                try:
+                    jsn_data = {
+                        "devid": device.mac_address,
+                        "gtwid": self.config.get('settings', 'hub_serial_no'),
+                        "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                        "orgid": 111111,
+                        "primary": {
+                            "type": "raw",
+                            "value": [
+                                round(device.data['data']['temperature'], 2),
+                                round(device.data['data']['humidity'], 2),
+                                round(device.data['data']['energy'], 2),
+                                round(device.data['data']['brightness'], 2),
+                                round(device.data['data']['conductivity'], 2)
+                            ]
+                        }
                     }
-                }
-                
-                api.send_collected_data(jsn_data)
-            except Exception as e:
-                logging.error(f"Error sending data to API: {str(e)}")
+                    api.send_collected_data(jsn_data)
+                except Exception as e:
+                    logging.error(f"Error sending data to API: {str(e)}")
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():
@@ -47,65 +67,100 @@ class null(PluginInterface):
             self.scan_filter = "none"
 
     class Device(PluginInterface.DeviceInterface):
-        def __init__(self):
-            self.config = ConfigSettings()
+        def __init__(self, sensor_info):
+            self.config = config()
             self.manufacturer = "ONiO"
             self.ip = ""
-            self.mac_address = self.generate_mac(self.config.get('settings', 'hub_serial_no'))
-            self.serial_no = "onio-0005-001"
-            self.model_no = "onio-null-emulator"
-            self.device_name = "Thermolator"
+            self.mac_address = sensor_info['address']
+            self.serial_no = sensor_info['serial_no']
+            self.model_no = sensor_info['model_no']
+            self.device_name = sensor_info['name']
             self.com_protocol = "BLE"
-            self.firmware = "1.0.0"
-            self.device_description = 'Thermometer Sensor (Emulator)'
+            self.firmware = sensor_info.get('firmware', "1.0.0")
+            self.device_description = sensor_info['description']
+            self.interval = sensor_info.get('interval', 10)
+            self.last_execution_time = None
+
+            # Data patterns
+            self.data_patterns = sensor_info.get('data', {})
+            self.data_point_types = list(self.data_patterns.keys())
+
             self.data = {
                 "device_id": self.mac_address,
                 "device_name": self.device_name,
                 "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
                 "firmware": self.firmware,
                 "data": {
-                    "temperature": 23.5,
-                    "humidity": 56.7,
-                    "energy": 70,
-                    "brightness": 200.0,
-                    "conductivity": 200.0
+                    "temperature": 0,
+                    "humidity": 0,
+                    "energy": 0,
+                    "brightness": 0,
+                    "conductivity": 0
                 }
             }
 
-        def generate_mac(self, serial_no) -> str:
-            # Generate a deterministic MAC address based on the serial number
-            hash_object = md5(serial_no.encode())
-            hash_hex = hash_object.hexdigest()
-            mac_parts = [hash_hex[i:i+2] for i in range(0, 12, 2)]
-            mac_address = ':'.join(mac_parts)
-            return mac_address
-
         def generate_emulated_data(self) -> None:
             current_time = datetime.now()
-
-            # "cosine wave" pattern for the temperature data point based on the minutes value
-            minutes = current_time.minute
-            temperature = 25 + 5 * cos(2 * pi * minutes / 60) + random.uniform(-1, 1)
-
-            # Generate a "square wave" pattern for the humidity data point based on the hours value
-            hours = current_time.hour
-            humidity = (50 if hours % 2 == 0 else 70) + random.uniform(1, 4)
-
-            # Generate a "pyramid" pattern for the energy data point based on the seconds value
-            seconds = current_time.second
-            energy = (seconds if seconds < 30 else 60 - seconds) 
-
-            # Generate a "sine wave" pattern for the brightness data point based on the minutes value
-            minutes = current_time.minute
-            brightness = 255 * (1 + sin(2 * pi * minutes / 60)) + random.uniform(0, 5)
-
-            # Generate a "sawtooth" pattern for the conductivity data point based on the hours value
-            hours = current_time.hour
-            conductivity = 255 * (hours / 24) + random.uniform(0, 5)
-
-            self.data['data']['temperature'] = temperature
-            self.data['data']['humidity'] = humidity
-            self.data['data']['energy'] = energy
-            self.data['data']['brightness'] = brightness
-            self.data['data']['conductivity'] = conductivity
+            for data_point, data_info in self.data_patterns.items():
+                pattern = data_info['pattern']
+                params = data_info['params']
+                value = self.generate_value(pattern, params, current_time)
+                self.data['data'][data_point] = value
             self.data['timestamp'] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
+
+        def generate_value(self, pattern, params, current_time):
+            time_unit = params.get('time_unit', 'seconds')
+            noise = params.get('noise', 0)
+
+            # Convert time to appropriate units
+            if time_unit == 'seconds':
+                time_value = current_time.timestamp()
+            elif time_unit == 'minutes':
+                time_value = current_time.timestamp() / 60
+            elif time_unit == 'hours':
+                time_value = current_time.timestamp() / 3600
+            else:
+                time_value = current_time.timestamp()
+
+            if pattern == 'sinus':
+                offset = params.get('offset', 0)
+                amplitude = params.get('amplitude', 1)
+                period = params.get('period', 1)
+                value = offset + amplitude * sin(2 * pi * time_value / period)
+            elif pattern == 'cosine':
+                offset = params.get('offset', 0)
+                amplitude = params.get('amplitude', 1)
+                period = params.get('period', 1)
+                value = offset + amplitude * cos(2 * pi * time_value / period)
+            elif pattern == 'square':
+                min_value = params.get('min_value', 0)
+                max_value = params.get('max_value', 1)
+                period = params.get('period', 1)
+                cycle = int(time_value / (period / 2)) % 2
+                value = max_value if cycle == 0 else min_value
+            elif pattern == 'sawtooth':
+                min_value = params.get('min_value', 0)
+                max_value = params.get('max_value', 1)
+                period = params.get('period', 1)
+                fraction = (time_value % period) / period
+                value = min_value + (max_value - min_value) * fraction
+            elif pattern == 'pyramid':
+                min_value = params.get('min_value', 0)
+                max_value = params.get('max_value', 1)
+                period = params.get('period', 1)
+                half_period = period / 2
+                time_in_period = time_value % period
+                if time_in_period < half_period:
+                    fraction = time_in_period / half_period
+                    value = min_value + (max_value - min_value) * fraction
+                else:
+                    fraction = (time_in_period - half_period) / half_period
+                    value = max_value - (max_value - min_value) * fraction
+            else:
+                value = 0  # Default value for unknown patterns
+
+            # Add random noise
+            if noise > 0:
+                value += random.uniform(-noise, noise)
+
+            return value

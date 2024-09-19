@@ -34,23 +34,50 @@ class ApiBackend():
             response = requests.get(url, headers=headers, timeout=timeout)
         else:
             response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
-        return json.loads(response.text)
+        try: return json.loads(response.text)
+        except: return {'statusCode': response.status_code, 'data': response.text}
 
 
     def get_token(self, serial_hash: str) -> bool:
         json_data = {'serial_number': serial_hash}
+        logging.info(f"Getting token for hub with serial hash: {serial_hash}")
         headers = self.get_headers()
-        response_data = self.make_api_request(self.config.get('endpoints', 'auth_fetch_token_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
+        timeout = int(self.config.get('settings', 'http_timeout'))
+        endpoint = self.config.get('endpoints', 'auth_fetch_token_ep')
 
-        if response_data['statusCode'] == 200:
-            self.refresh_token = response_data['data']['refreshToken']
-            self.api_token = response_data['data']['accessToken']
-            return True
-        else:
-            logging.error("Failed to get token from server")
+
+        try:
+            response_data = self.make_api_request(endpoint, json_data, headers, timeout)
+        except requests.RequestException as e:
+            logging.error(f"Failed to get token from server due to {e}")
+            logging.debug(json_data)
+            return False
+
+        if response_data is None:
+            logging.error("No response from server")
+            logging.debug(json_data)
+            return False
+
+        if not isinstance(response_data, dict) or 'statusCode' not in response_data:
+            logging.error("Invalid response format")
+            logging.debug(response_data)
+            return False
+
+        if response_data.get('statusCode') != 200:
+            logging.error(f"Failed to get token from server. Status code: {response_data.get('statusCode')}")
             logging.debug(json_data)
             logging.debug(response_data)
             return False
+
+        data = response_data.get('data', {})
+        if not isinstance(data, dict) or 'refreshToken' not in data or 'accessToken' not in data:
+            logging.error("Invalid data format")
+            logging.debug(response_data)
+            return False
+
+        self.refresh_token = data['refreshToken']
+        self.api_token = data['accessToken']
+        return True
 
 
     def refresh_token(self, refresh_token: str) -> bool:
@@ -58,7 +85,7 @@ class ApiBackend():
         headers = self.get_headers()
         response_data = self.make_api_request(self.config.get('endpoints', 'auth_refresh_token_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
 
-        if response_data['statusCode'] == 200:
+        if response_data.get('statusCode') == 200:
             self.refresh_token = response_data['data']['refreshToken']
             self.api_token = response_data['data']['accessToken']
             return True
@@ -79,7 +106,7 @@ class ApiBackend():
 
         response_data = self.make_api_request(self.config.get('endpoints', 'ping_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
 
-        if response_data['statusCode'] == 200:
+        if response_data.get('statusCode') == 200:
             self.command = response_data['data']['command']
             if self.command != "":
                 logging.info(f"Received command: {self.command}")
@@ -122,7 +149,7 @@ class ApiBackend():
         response_data = self.make_api_request(self.config.get('endpoints', 'set_location_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
         
 
-        if response_data['statusCode'] == 200:
+        if response_data.get('statusCode') == 200:
             return True
         else:
             logging.error("Failed to set location with server")
@@ -157,7 +184,7 @@ class ApiBackend():
         response_data = self.make_api_request(self.config.get('endpoints', 'scan_data_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
         
 
-        if response_data['statusCode'] == 200:
+        if response_data.get('statusCode') == 200:
             return True
         else:
             logging.error("Failed to post scan results to server")
@@ -171,17 +198,17 @@ class ApiBackend():
             logging.error("No API token found. Cannot send collected data")
             return False
         
-        logging.info(f"Sending data to API: {data['data']}")
+        logging.info(f"Sending data to API: {data}")
         headers = self.get_headers(include_auth_token=True)
         response_data = self.make_api_request(self.config.get('endpoints', 'send_data_ep'), data, headers, int(self.config.get('settings', 'http_timeout')))
         
 
-        if response_data['statusCode'] == 200:
+        if response_data.get('statusCode') == 200:
             return True
         else:
-            logging.error("Failed to send collected data to server")
+            logging.error("Failed to send collected data to server. status code: " + str(response_data.get('statusCode')))
             logging.debug(data)
-            logging.debug(response_data)
+            logging.error(response_data)
             return False
         
 

@@ -1,0 +1,56 @@
+sensors:
+  - name: sensor0
+    address: b2:0e:60:f2:70:f8
+    serial_no: "onio-0005-000"
+    model_no: "onio-sensor-node"
+    description: "Temperature Sensor Emulator"
+    data:
+      temperature:
+        pattern: sinus
+        params:
+          offset: 25
+          amplitude: 5
+          period: 60  # in minutes
+          time_unit: minutes
+          noise: 1
+    interval: 10  # in seconds
+
+  - name: sensor1
+    address: b2:0e:60:f2:70:fa
+    serial_no: "onio-0005-001"
+    model_no: "onio-sensor-node"
+    description: "Humidity Sensor Emulator"
+    data:
+      humidity:
+        pattern: square
+        params:
+          min_value: 50
+          max_value: 70
+          period: 2  # in minutes
+          time_unit: minutes
+          noise: 2
+    interval: 10  # in seconds
+
+  - name: sensor2
+    address: b2:0e:60:f2:70:f0
+    serial_no: "onio-0005-002"
+    model_no: "onio-sensor-node"
+    description: "Multi Sensor Emulator"
+    data:
+      temperature:
+        pattern: cosine
+        params:
+          offset: 20
+          amplitude: 10
+          period: 20  # in minutes
+          time_unit: minutes
+          noise: 0.5
+      humidity:
+        pattern: sawtooth
+        params:
+          min_value: 30
+          max_value: 90
+          period: 10  # in minutes
+          time_unit: minutes
+          noise: 1
+    interval: 10  # in seconds
