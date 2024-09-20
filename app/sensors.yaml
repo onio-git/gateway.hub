@@ -1,6 +1,6 @@
 sensors:
-  - name: sensor0
-    address: b2:0e:60:f2:70:f8
+  - name: sensor11
+    address: b1:0e:60:f2:70:f8
     serial_no: "onio-0005-000"
     model_no: "onio-sensor-node"
     description: "Temperature Sensor Emulator"
@@ -15,8 +15,8 @@ sensors:
           noise: 1
     interval: 10  # in seconds
 
-  - name: sensor1
-    address: b2:0e:60:f2:70:fa
+  - name: sensor22
+    address: b1:0e:60:f2:70:fa
     serial_no: "onio-0005-001"
     model_no: "onio-sensor-node"
     description: "Humidity Sensor Emulator"
@@ -31,8 +31,8 @@ sensors:
           noise: 2
     interval: 10  # in seconds
 
-  - name: sensor2
-    address: b2:0e:60:f2:70:f0
+  - name: sensor33
+    address: b1:0e:60:f2:70:f0
     serial_no: "onio-0005-002"
     model_no: "onio-sensor-node"
     description: "Multi Sensor Emulator"
