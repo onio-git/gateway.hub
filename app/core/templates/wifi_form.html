@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Configure Wi-Fi</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f7f7f7; }
+        .container { width: 300px; margin: 0 auto; padding-top: 50px; }
+        h1 { text-align: center; }
+        form { display: flex; flex-direction: column; }
+        label { margin-top: 10px; }
+        select, input { padding: 8px; margin-top: 5px; }
+        button { padding: 10px; margin-top: 20px; background-color: #28a745; color: white; border: none; }
+        button:hover { background-color: #218838; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Configure Wi-Fi</h1>
+        <form method="POST" action="/configure">
+            <label for="ssid">Select Wi-Fi Network:</label>
+            <select id="ssid" name="ssid">
+                {% for ssid in ssid_list %}
+                <option value="{{ ssid }}">{{ ssid }}</option>
+                {% endfor %}
+            </select>
+            <label for="password">Wi-Fi Password:</label>
+            <input type="password" id="password" name="password" required>
+            <button type="submit">Connect</button>
+        </form>
+    </div>
+</body>
+</html>
