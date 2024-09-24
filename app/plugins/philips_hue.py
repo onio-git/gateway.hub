@@ -71,6 +71,7 @@ class philips_hue(PluginInterface):
             self.scan_filter_method = "uuid"
             self.scan_filter = "0000fe0f-0000-1000-8000-00805f9b34fb"
 
+
     class Device(PluginInterface.DeviceInterface):
         def __init__(self, mac_address, device_name):
             self.mac_address = mac_address
@@ -213,50 +214,74 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
             child.sendline('default-agent')
             child.expect('#')
 
-            # Check if already paired
-            child.sendline('paired-devices')
-            child.expect('#')
-            paired_devices_output = child.before
-            if mac_address in paired_devices_output:
-                logging.info(f"Device {mac_address} is already paired.")
-            else:
-                # Initiate pairing
-                child.sendline(f'pair {mac_address}')
-                index = child.expect([
-                    'Pairing successful',
-                    'Device has been paired',
-                    'Authentication Failed',
-                    'Failed to pair',
-                    'Agent request PIN code',
-                    'Agent request Passkey',
-                    pexpect.EOF,
-                    pexpect.TIMEOUT
-                ])
+            # Check if the device is already paired and trusted
+            child.sendline(f'info {mac_address}')
+            index = child.expect([
+                f"Device {mac_address} not found",
+                f"Device {mac_address} is not paired",
+                f"Paired: yes",
+                pexpect.EOF,
+                pexpect.TIMEOUT
+            ])
 
-                if index in [0, 1]:
-                    logging.info(f"Successfully paired with {mac_address}")
-                elif index == 2 or index == 3:
-                    logging.error(f"Failed to pair with {mac_address}")
+            if index == 0 or index == 1:
+                logging.info(f"Device {mac_address} is not paired. Proceeding to pair.")
+            elif index == 2:
+                logging.info(f"Device {mac_address} is already paired.")
+                # Check if trusted
+                child.sendline(f'info {mac_address}')
+                child.expect('#')
+                info_output = child.before
+                if "Trusted: yes" in info_output:
+                    logging.info(f"Device {mac_address} is already trusted.")
                     child.sendline('exit')
                     child.close()
-                    return False
-                elif index == 4:
-                    # Handle PIN code request if needed
-                    pin_code = '0000'  # Replace with the actual PIN if required
-                    child.sendline(pin_code)
-                    child.expect('#')
-                    logging.info(f"Sent PIN code to {mac_address}")
-                elif index == 5:
-                    # Handle Passkey request if needed
-                    passkey = '123456'  # Replace with the actual Passkey if required
-                    child.sendline(passkey)
-                    child.expect('#')
-                    logging.info(f"Sent Passkey to {mac_address}")
+                    return True
                 else:
-                    logging.error(f"Unexpected response during pairing with {mac_address}")
-                    child.sendline('exit')
-                    child.close()
-                    return False
+                    logging.info(f"Device {mac_address} is not trusted. Proceeding to trust.")
+            else:
+                logging.error(f"Unexpected response while checking info for {mac_address}")
+                child.sendline('exit')
+                child.close()
+                return False
+
+            # Initiate pairing
+            child.sendline(f'pair {mac_address}')
+            index = child.expect([
+                'Pairing successful',
+                'Device has been paired',
+                'Authentication Failed',
+                'Failed to pair',
+                'Agent request PIN code',
+                'Agent request Passkey',
+                pexpect.EOF,
+                pexpect.TIMEOUT
+            ])
+
+            if index in [0, 1]:
+                logging.info(f"Successfully paired with {mac_address}")
+            elif index in [2, 3]:
+                logging.error(f"Failed to pair with {mac_address}")
+                child.sendline('exit')
+                child.close()
+                return False
+            elif index == 4:
+                # Handle PIN code request if needed
+                pin_code = '0000'  # Replace with the actual PIN if required
+                child.sendline(pin_code)
+                child.expect('#')
+                logging.info(f"Sent PIN code to {mac_address}")
+            elif index == 5:
+                # Handle Passkey request if needed
+                passkey = '123456'  # Replace with the actual Passkey if required
+                child.sendline(passkey)
+                child.expect('#')
+                logging.info(f"Sent Passkey to {mac_address}")
+            else:
+                logging.error(f"Unexpected response during pairing with {mac_address}")
+                child.sendline('exit')
+                child.close()
+                return False
 
             # Trust the device
             child.sendline(f'trust {mac_address}')
