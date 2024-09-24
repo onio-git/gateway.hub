@@ -71,122 +71,122 @@ class philips_hue(PluginInterface):
             self.scan_filter_method = "uuid"
             self.scan_filter = "0000fe0f-0000-1000-8000-00805f9b34fb"
 
-class Device(PluginInterface.DeviceInterface):
-    def __init__(self, mac_address, device_name):
-        self.mac_address = mac_address
-        self.device_name = device_name
-        self.manufacturer = "Philips Hue"
-        self.ip = ""
-        self.serial_no = ""
-        self.model_no = "440400982842"
-        self.com_protocol = "BLE"
-        self.firmware = ""
-        self.device_description = 'Philips Hue Play Light Bar'
+    class Device(PluginInterface.DeviceInterface):
+        def __init__(self, mac_address, device_name):
+            self.mac_address = mac_address
+            self.device_name = device_name
+            self.manufacturer = "Philips Hue"
+            self.ip = ""
+            self.serial_no = ""
+            self.model_no = "440400982842"
+            self.com_protocol = "BLE"
+            self.firmware = ""
+            self.device_description = 'Philips Hue Play Light Bar'
 
-        self.state = {
-            "light_is_on": False,
-            "brightness": 0,
-            "temperature": 0,
-            "color": 0x000000
-        }
+            self.state = {
+                "light_is_on": False,
+                "brightness": 0,
+                "temperature": 0,
+                "color": 0x000000
+            }
 
-    async def connect_and_read(self):
-        try:
-            # Step 1: Pair and Trust the Device
-            logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
-            paired_and_trusted = await pair_and_trust(self.mac_address)
+        async def connect_and_read(self):
+            try:
+                # Step 1: Pair and Trust the Device
+                logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
+                paired_and_trusted = await pair_and_trust(self.mac_address)
 
-            if not paired_and_trusted:
-                logging.error(f"Failed to pair with {self.mac_address} - {self.device_name}")
-                return None
-
-            # Step 2: Connect and Read Data using Bleak
-            async with BleakClient(self.mac_address) as client:
-                if not client.is_connected:
-                    logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
+                if not paired_and_trusted:
+                    logging.error(f"Failed to pair with {self.mac_address} - {self.device_name}")
                     return None
 
-                logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+                # Step 2: Connect and Read Data using Bleak
+                async with BleakClient(self.mac_address) as client:
+                    if not client.is_connected:
+                        logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
+                        return None
 
-                # Perform operations
-                state = await self.read_light_state(client)
-                await asyncio.sleep(5.0)
-                return state
+                    logging.info(f"Connected to {self.mac_address} - {self.device_name}")
 
-        except Exception as e:
-            logging.error(f"Error in connect_and_read: {e}")
-            return None
+                    # Perform operations
+                    state = await self.read_light_state(client)
+                    await asyncio.sleep(5.0)
+                    return state
 
-    async def read_light_state(self, client):
-        logging.info("Reading Light State...")
-
-        if self.firmware == "":
-            try:
-                firmware = await client.read_gatt_char(FIRMWARE_CHARACTERISTIC)
-                self.firmware = ''.join([chr(byte) for byte in firmware])
-                logging.info(f"Firmware: {self.firmware}")
             except Exception as e:
-                logging.error(f"Failed to read firmware: {e}")
+                logging.error(f"Error in connect_and_read: {e}")
+                return None
 
-        try:
-            # Read light state
-            state = await client.read_gatt_char(LIGHT_CHARACTERISTIC)
-            self.state["light_is_on"] = bool(state[0])
-        except Exception as e:
-            logging.error(f"Failed to read light state: {e}")
+        async def read_light_state(self, client):
+            logging.info("Reading Light State...")
 
-        try:
-            # Read brightness
-            brightness = await client.read_gatt_char(BRIGHTNESS_CHARACTERISTIC)
-            self.state["brightness"] = int(brightness[0])
-        except Exception as e:
-            logging.error(f"Failed to read brightness: {e}")
+            if self.firmware == "":
+                try:
+                    firmware = await client.read_gatt_char(FIRMWARE_CHARACTERISTIC)
+                    self.firmware = ''.join([chr(byte) for byte in firmware])
+                    logging.info(f"Firmware: {self.firmware}")
+                except Exception as e:
+                    logging.error(f"Failed to read firmware: {e}")
 
-        try:
-            # Read temperature
-            temperature = await client.read_gatt_char(TEMPERATURE_CHARACTERISTIC)
-            self.state["temperature"] = int.from_bytes(temperature, byteorder='big')
-        except Exception as e:
-            logging.error(f"Failed to read temperature: {e}")
+            try:
+                # Read light state
+                state = await client.read_gatt_char(LIGHT_CHARACTERISTIC)
+                self.state["light_is_on"] = bool(state[0])
+            except Exception as e:
+                logging.error(f"Failed to read light state: {e}")
 
-        try:
-            # Read color
-            color = await client.read_gatt_char(COLOR_CHARACTERISTIC)
-            self.state["color"] = [hex(byte) for byte in color]
-        except Exception as e:
-            logging.error(f"Failed to read color: {e}")
+            try:
+                # Read brightness
+                brightness = await client.read_gatt_char(BRIGHTNESS_CHARACTERISTIC)
+                self.state["brightness"] = int(brightness[0])
+            except Exception as e:
+                logging.error(f"Failed to read brightness: {e}")
 
-        return self.state
+            try:
+                # Read temperature
+                temperature = await client.read_gatt_char(TEMPERATURE_CHARACTERISTIC)
+                self.state["temperature"] = int.from_bytes(temperature, byteorder='big')
+            except Exception as e:
+                logging.error(f"Failed to read temperature: {e}")
 
-    async def turn_light_off(self, client):
-        logging.info("Turning Light off...")
-        try:
-            await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x00", response=True)
-        except Exception as e:
-            logging.error(f"Failed to turn off light: {e}")
+            try:
+                # Read color
+                color = await client.read_gatt_char(COLOR_CHARACTERISTIC)
+                self.state["color"] = [hex(byte) for byte in color]
+            except Exception as e:
+                logging.error(f"Failed to read color: {e}")
 
-    async def turn_light_on(self, client):
-        logging.info("Turning Light on...")
-        try:
-            await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x01", response=True)
-        except Exception as e:
-            logging.error(f"Failed to turn on light: {e}")
+            return self.state
 
-    async def set_color(self, client, color):
-        logging.info(f"Setting color to [{', '.join(f'0x{byte:02x}' for byte in color)}] ...")
-        try:
-            await client.write_gatt_char(COLOR_CHARACTERISTIC, color, response=True)
-        except Exception as e:
-            logging.error(f"Failed to set color: {e}")
+        async def turn_light_off(self, client):
+            logging.info("Turning Light off...")
+            try:
+                await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x00", response=True)
+            except Exception as e:
+                logging.error(f"Failed to turn off light: {e}")
 
-    async def set_brightness(self, client, brightness):
-        logging.info(f"Setting brightness to {brightness} % ...")
-        # Brightness range: 0-100 - converts to 1-254
-        brightness = int((brightness / 100) * 254)
-        try:
-            await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
-        except Exception as e:
-            logging.error(f"Failed to set brightness: {e}")
+        async def turn_light_on(self, client):
+            logging.info("Turning Light on...")
+            try:
+                await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x01", response=True)
+            except Exception as e:
+                logging.error(f"Failed to turn on light: {e}")
+
+        async def set_color(self, client, color):
+            logging.info(f"Setting color to [{', '.join(f'0x{byte:02x}' for byte in color)}] ...")
+            try:
+                await client.write_gatt_char(COLOR_CHARACTERISTIC, color, response=True)
+            except Exception as e:
+                logging.error(f"Failed to set color: {e}")
+
+        async def set_brightness(self, client, brightness):
+            logging.info(f"Setting brightness to {brightness} % ...")
+            # Brightness range: 0-100 - converts to 1-254
+            brightness = int((brightness / 100) * 254)
+            try:
+                await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
+            except Exception as e:
+                logging.error(f"Failed to set brightness: {e}")
 
 async def pair_and_trust(mac_address, retries=3, delay=5):
     """
