@@ -57,9 +57,9 @@ class philips_hue(PluginInterface):
     async def run_devices(self):
         for _, device in self.devices.items():
             # Check if the device is already connected
-            async with BleakClient(device.mac_address) as client:
-                if client.is_connected:
-                    logging.info(f"Device {device.mac_address} is already connected.")
+            # async with BleakClient(device.mac_address) as client:
+            #     if client.is_connected:
+            #         logging.info(f"Device {device.mac_address} is already connected.")
 
             # If not connected, attempt to connect and read
             data = await device.connect_and_read()
