@@ -12,4 +12,5 @@ coverage.xml
 *.cover
 
 # Other
+log/*
 *.log
