@@ -3,12 +3,20 @@ from core.plugin_interface import PluginInterface
 from core.backend import ApiBackend
 from bleak import BleakClient
 import asyncio
-import subprocess
-import sys
 import pexpect
+import sys
 
+# Configure Logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Set to DEBUG for detailed logs
+    format='%(asctime)s - %(levelname)s\t- %(message)s',
+    handlers=[
+        logging.FileHandler("bluetooth_debug.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 
-# Philips Hue Play Light Bar
+# Philips Hue Play Light Bar UUIDs
 LIGHT_CHARACTERISTIC = "932c32bd-0002-47a2-835a-a8d455b859dd"
 BRIGHTNESS_CHARACTERISTIC = "932c32bd-0003-47a2-835a-a8d455b859dd"
 TEMPERATURE_CHARACTERISTIC = "932c32bd-0004-47a2-835a-a8d455b859dd"
@@ -16,34 +24,22 @@ COLOR_CHARACTERISTIC = "932c32bd-0005-47a2-835a-a8d455b859dd"
 COMBINED_CHARACTERISTIC = "932c32bd-0007-47a2-835a-a8d455b859dd"
 FIRMWARE_CHARACTERISTIC = "00002a28-0000-1000-8000-00805f9b34fb"
 
-
 def color_by_name(name: str) -> bytearray:
     name = name.lower()
-    if name == "white":
-        return bytearray([0x30, 0x50, 0x30, 0x54])
-    elif name == "warm yellow":
-        return bytearray([0x30, 0x6a, 0x30, 0x6d])
-    elif name == "orange":
-        return bytearray([0x30, 0x7e, 0x30, 0x70])
-    elif name == "red":
-        return bytearray([0x9E, 0xB0, 0xF3, 0x4E])
-    elif name == "pink":
-        return bytearray([0x30, 0x65, 0x30, 0x1F])
-    elif name == "purple":
-        return bytearray([0x30, 0x5d, 0x30, 0x38])
-    elif name == "blue":
-        return bytearray([0x37, 0x27, 0x3F, 0x0C])
-    elif name == "cyan":
-        return bytearray([0x30, 0x38, 0x30, 0x4e])
-    elif name == "turqoise":
-        return bytearray([0x3f, 0x45, 0x33, 0x5B])
-    elif name == "green":
-        return bytearray([0xA7, 0x4D, 0xE4, 0x98])
-    elif name == "yellowgreen":
-        return bytearray([0x30, 0x38, 0x30, 0x4e])
-    else:
-        return bytearray([0x30, 0x50, 0x30, 0x54])
-
+    color_map = {
+        "white": bytearray([0x30, 0x50, 0x30, 0x54]),
+        "warm yellow": bytearray([0x30, 0x6a, 0x30, 0x6d]),
+        "orange": bytearray([0x30, 0x7e, 0x30, 0x70]),
+        "red": bytearray([0x9E, 0xB0, 0xF3, 0x4E]),
+        "pink": bytearray([0x30, 0x65, 0x30, 0x1F]),
+        "purple": bytearray([0x30, 0x5d, 0x30, 0x38]),
+        "blue": bytearray([0x37, 0x27, 0x3F, 0x0C]),
+        "cyan": bytearray([0x30, 0x38, 0x30, 0x4e]),
+        "turquoise": bytearray([0x3f, 0x45, 0x33, 0x5B]),
+        "green": bytearray([0xA7, 0x4D, 0xE4, 0x98]),
+        "yellowgreen": bytearray([0x30, 0x38, 0x30, 0x4e]),
+    }
+    return color_map.get(name, bytearray([0x30, 0x50, 0x30, 0x54]))
 
 class philips_hue(PluginInterface):
     def __init__(self):
@@ -75,220 +71,224 @@ class philips_hue(PluginInterface):
             self.scan_filter_method = "uuid"
             self.scan_filter = "0000fe0f-0000-1000-8000-00805f9b34fb"
 
-    class Device(PluginInterface.DeviceInterface):
-        def __init__(self, mac_address, device_name):
-            self.mac_address = mac_address
-            self.device_name = device_name
-            self.manufacturer = "Philips Hue"
-            self.ip = ""
-            self.serial_no = ""
-            self.model_no = "440400982842"
-            self.com_protocol = "BLE"
-            self.firmware = ""
-            self.device_description = 'Philips Hue Play Light Bar'
+class Device(PluginInterface.DeviceInterface):
+    def __init__(self, mac_address, device_name):
+        self.mac_address = mac_address
+        self.device_name = device_name
+        self.manufacturer = "Philips Hue"
+        self.ip = ""
+        self.serial_no = ""
+        self.model_no = "440400982842"
+        self.com_protocol = "BLE"
+        self.firmware = ""
+        self.device_description = 'Philips Hue Play Light Bar'
 
-            self.state = {
-                "light_is_on": False,
-                "brightness": 0,
-                "temperature": 0,
-                "color": 0x000000
-            }
+        self.state = {
+            "light_is_on": False,
+            "brightness": 0,
+            "temperature": 0,
+            "color": 0x000000
+        }
 
-        async def introspect(self, client) -> None:
-            for s in client.services:
-                print(f"service: {s.uuid}")
-                for c in s.characteristics:
-                    try:
-                        val = await client.read_gatt_char(c.uuid)
+    async def connect_and_read(self):
+        try:
+            # Step 1: Pair and Trust the Device
+            logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
+            paired_and_trusted = await pair_and_trust(self.mac_address)
 
-                        print(f"  characteristic: {c.uuid}: {[hex(byte) for byte in val] if type(val)== bytearray else val}")
-                    except Exception as e:
-                        print(f"  characteristic: {c.uuid}: {e}")
-
-
-        async def connect_and_read(self):
-            try:
-                # Step 1: Pair and Trust the Device
-                logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
-                paired_and_trusted = await pair_and_trust_with_retry(self.mac_address)
-                
-                if not paired_and_trusted:
-                    logging.error(f"Failed to pair with {self.mac_address} - {self.device_name}")
-                    return None
-
-                # Step 2: Connect and Read Data using Bleak
-                async with BleakClient(self.mac_address) as client:
-                    if not client.is_connected:
-                        logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
-                        return None
-
-                    logging.info(f"Connected to {self.mac_address} - {self.device_name}")
-                    
-                    # Perform operations
-                    # Example: Read light state
-                    state = await self.read_light_state(client)
-                    await asyncio.sleep(5.0)
-                    return state
-
-            except Exception as e:
-                logging.error(f"Error: {e}")
+            if not paired_and_trusted:
+                logging.error(f"Failed to pair with {self.mac_address} - {self.device_name}")
                 return None
 
-        async def read_light_state(self, client):
-            logging.info("Reading Light State...")
+            # Step 2: Connect and Read Data using Bleak
+            async with BleakClient(self.mac_address) as client:
+                if not client.is_connected:
+                    logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
+                    return None
 
-            if self.firmware == "":
+                logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+
+                # Perform operations
+                state = await self.read_light_state(client)
+                await asyncio.sleep(5.0)
+                return state
+
+        except Exception as e:
+            logging.error(f"Error in connect_and_read: {e}")
+            return None
+
+    async def read_light_state(self, client):
+        logging.info("Reading Light State...")
+
+        if self.firmware == "":
+            try:
                 firmware = await client.read_gatt_char(FIRMWARE_CHARACTERISTIC)
                 self.firmware = ''.join([chr(byte) for byte in firmware])
                 logging.info(f"Firmware: {self.firmware}")
-            
+            except Exception as e:
+                logging.error(f"Failed to read firmware: {e}")
+
+        try:
             # Read light state
             state = await client.read_gatt_char(LIGHT_CHARACTERISTIC)
             self.state["light_is_on"] = bool(state[0])
+        except Exception as e:
+            logging.error(f"Failed to read light state: {e}")
+
+        try:
             # Read brightness
             brightness = await client.read_gatt_char(BRIGHTNESS_CHARACTERISTIC)
             self.state["brightness"] = int(brightness[0])
+        except Exception as e:
+            logging.error(f"Failed to read brightness: {e}")
+
+        try:
             # Read temperature
             temperature = await client.read_gatt_char(TEMPERATURE_CHARACTERISTIC)
             self.state["temperature"] = int.from_bytes(temperature, byteorder='big')
+        except Exception as e:
+            logging.error(f"Failed to read temperature: {e}")
+
+        try:
             # Read color
             color = await client.read_gatt_char(COLOR_CHARACTERISTIC)
             self.state["color"] = [hex(byte) for byte in color]
+        except Exception as e:
+            logging.error(f"Failed to read color: {e}")
 
-            return self.state
+        return self.state
 
-        async def turn_light_off(self, client):
-            logging.info("Turning Light off...")
+    async def turn_light_off(self, client):
+        logging.info("Turning Light off...")
+        try:
             await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x00", response=True)
+        except Exception as e:
+            logging.error(f"Failed to turn off light: {e}")
 
-        async def turn_light_on(self, client):
-            logging.info("Turning Light on...")
+    async def turn_light_on(self, client):
+        logging.info("Turning Light on...")
+        try:
             await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x01", response=True)
+        except Exception as e:
+            logging.error(f"Failed to turn on light: {e}")
 
-        async def set_color(self, client, color):
-            logging.info(f"Setting color to [{', '.join(f'0x{byte:02x}' for byte in color)}] ...")
+    async def set_color(self, client, color):
+        logging.info(f"Setting color to [{', '.join(f'0x{byte:02x}' for byte in color)}] ...")
+        try:
             await client.write_gatt_char(COLOR_CHARACTERISTIC, color, response=True)
+        except Exception as e:
+            logging.error(f"Failed to set color: {e}")
 
-        async def set_brightness(self, client, brightness):
-            logging.info(f"Setting brightness to {brightness} % ...")
-            # Brightness range: 0-100 - converts to 1-254
-            brightness = int((brightness / 100) * 254)
+    async def set_brightness(self, client, brightness):
+        logging.info(f"Setting brightness to {brightness} % ...")
+        # Brightness range: 0-100 - converts to 1-254
+        brightness = int((brightness / 100) * 254)
+        try:
             await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
+        except Exception as e:
+            logging.error(f"Failed to set brightness: {e}")
 
-
-
-def run_bluetoothctl_command(commands):
-    """
-    Runs a series of commands in bluetoothctl and returns the output.
-    """
-    process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    out, err = process.communicate(commands)
-    return out, err
-
-async def pair_and_trust(mac_address):
+async def pair_and_trust(mac_address, retries=3, delay=5):
     """
     Automates the pairing and trusting process using bluetoothctl via pexpect.
+    Retries the process up to `retries` times with `delay` seconds between attempts.
     """
-    try:
-        # Spawn bluetoothctl
-        child = pexpect.spawn('bluetoothctl', encoding='utf-8', timeout=30)
-        child.logfile = sys.stdout  # Optional: Log interaction for debugging
-
-        # Wait for the bluetoothctl prompt
-        child.expect('#')
-
-        # Turn on the Bluetooth adapter
-        child.sendline('power on')
-        child.expect('#')
-
-        # Set up the agent
-        child.sendline('agent on')
-        child.expect('#')
-        child.sendline('default-agent')
-        child.expect('#')
-
-        # Initiate pairing
-        child.sendline(f'pair {mac_address}')
-
-        # Handle possible responses
-        index = child.expect([
-            'Pairing successful',
-            'Device has been paired',
-            'Authentication Failed',
-            'Failed to pair',
-            'Agent request PIN code',
-            'Agent request Passkey',
-            pexpect.EOF,
-            pexpect.TIMEOUT
-        ])
-
-        if index in [0, 1]:
-            logging.info(f"Successfully paired with {mac_address}")
-        elif index == 2 or index == 3:
-            logging.error(f"Failed to pair with {mac_address}")
-            child.sendline('exit')
-            child.close()
-            return False
-        elif index == 4:
-            # Handle PIN code request if needed
-            pin_code = '0000'  # Replace with the actual PIN if required
-            child.sendline(pin_code)
-            child.expect('#')
-            logging.info(f"Sent PIN code to {mac_address}")
-        elif index == 5:
-            # Handle Passkey request if needed
-            passkey = '123456'  # Replace with the actual Passkey if required
-            child.sendline(passkey)
-            child.expect('#')
-            logging.info(f"Sent Passkey to {mac_address}")
-        else:
-            logging.error(f"Unexpected response during pairing with {mac_address}")
-            child.sendline('exit')
-            child.close()
-            return False
-
-        # Trust the device
-        child.sendline(f'trust {mac_address}')
-        index = child.expect([
-            f"Changing {mac_address} trust succeeded",
-            f"Device {mac_address} not available",
-            pexpect.EOF,
-            pexpect.TIMEOUT
-        ])
-
-        if index == 0:
-            logging.info(f"Successfully trusted {mac_address}")
-        else:
-            logging.error(f"Failed to trust {mac_address}")
-            child.sendline('exit')
-            child.close()
-            return False
-
-        # Exit bluetoothctl
-        child.sendline('exit')
-        child.close()
-        return True
-
-    except pexpect.exceptions.EOF:
-        logging.error("Unexpected EOF during pairing/trusting process.")
-        return False
-    except pexpect.exceptions.TIMEOUT:
-        logging.error("Timeout occurred during pairing/trusting process.")
-        return False
-    except Exception as e:
-        logging.error(f"Exception during pairing/trusting: {e}")
-        return False
-
-
-async def pair_and_trust_with_retry(mac_address, retries=3, delay=5):
     for attempt in range(1, retries + 1):
         logging.info(f"Pairing attempt {attempt} for {mac_address}")
-        success = await pair_and_trust(mac_address)
-        if success:
-            logging.info(f"Successfully paired and trusted on attempt {attempt}")
+        try:
+            # Spawn bluetoothctl
+            child = pexpect.spawn('bluetoothctl', encoding='utf-8', timeout=30)
+            child.logfile = sys.stdout  # Log interaction for debugging
+
+            # Wait for the bluetoothctl prompt
+            child.expect('#')
+
+            # Turn on the Bluetooth adapter
+            child.sendline('power on')
+            child.expect('#')
+
+            # Set up the agent
+            child.sendline('agent on')
+            child.expect('#')
+            child.sendline('default-agent')
+            child.expect('#')
+
+            # Check if already paired
+            child.sendline('paired-devices')
+            child.expect('#')
+            paired_devices_output = child.before
+            if mac_address in paired_devices_output:
+                logging.info(f"Device {mac_address} is already paired.")
+            else:
+                # Initiate pairing
+                child.sendline(f'pair {mac_address}')
+                index = child.expect([
+                    'Pairing successful',
+                    'Device has been paired',
+                    'Authentication Failed',
+                    'Failed to pair',
+                    'Agent request PIN code',
+                    'Agent request Passkey',
+                    pexpect.EOF,
+                    pexpect.TIMEOUT
+                ])
+
+                if index in [0, 1]:
+                    logging.info(f"Successfully paired with {mac_address}")
+                elif index == 2 or index == 3:
+                    logging.error(f"Failed to pair with {mac_address}")
+                    child.sendline('exit')
+                    child.close()
+                    return False
+                elif index == 4:
+                    # Handle PIN code request if needed
+                    pin_code = '0000'  # Replace with the actual PIN if required
+                    child.sendline(pin_code)
+                    child.expect('#')
+                    logging.info(f"Sent PIN code to {mac_address}")
+                elif index == 5:
+                    # Handle Passkey request if needed
+                    passkey = '123456'  # Replace with the actual Passkey if required
+                    child.sendline(passkey)
+                    child.expect('#')
+                    logging.info(f"Sent Passkey to {mac_address}")
+                else:
+                    logging.error(f"Unexpected response during pairing with {mac_address}")
+                    child.sendline('exit')
+                    child.close()
+                    return False
+
+            # Trust the device
+            child.sendline(f'trust {mac_address}')
+            index = child.expect([
+                f"Changing {mac_address} trust succeeded",
+                f"Device {mac_address} not available",
+                pexpect.EOF,
+                pexpect.TIMEOUT
+            ])
+
+            if index == 0:
+                logging.info(f"Successfully trusted {mac_address}")
+            else:
+                logging.error(f"Failed to trust {mac_address}")
+                child.sendline('exit')
+                child.close()
+                return False
+
+            # Exit bluetoothctl
+            child.sendline('exit')
+            child.close()
             return True
-        else:
-            logging.warning(f"Attempt {attempt} failed. Retrying in {delay} seconds...")
-            await asyncio.sleep(delay)
+
+        except pexpect.exceptions.EOF:
+            logging.error("Unexpected EOF during pairing/trusting process.")
+        except pexpect.exceptions.TIMEOUT:
+            logging.error("Timeout occurred during pairing/trusting process.")
+        except Exception as e:
+            logging.error(f"Exception during pairing/trusting: {e}")
+
+        logging.warning(f"Attempt {attempt} failed. Retrying in {delay} seconds...")
+        await asyncio.sleep(delay)
+
     logging.error(f"All {retries} pairing attempts failed for {mac_address}")
     return False
