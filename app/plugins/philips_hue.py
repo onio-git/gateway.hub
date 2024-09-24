@@ -8,10 +8,10 @@ import sys
 
 # Configure Logging
 logging.basicConfig(
-    level=logging.DEBUG,  # Set to DEBUG for detailed logs
+    level=logging.INFO,  # Set to INFO to reduce verbosity; switch to DEBUG when needed
     format='%(asctime)s - %(levelname)s\t- %(message)s',
     handlers=[
-        logging.FileHandler("bluetooth_debug.log"),
+        logging.FileHandler("app.log"),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -55,11 +55,22 @@ class philips_hue(PluginInterface):
         self.plugin_active = False
 
     async def run_devices(self):
-        for _, device in self.devices.items():
-            data = await device.connect_and_read()
-            if not data:
-                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
-                continue
+    for _, device in self.devices.items():
+        # Check if the device is already connected
+        async with BleakClient(device.mac_address) as client:
+            if client.is_connected:
+                logging.info(f"Device {device.mac_address} is already connected.")
+                continue  # Skip to the next device
+
+        # If not connected, attempt to connect and read
+        data = await device.connect_and_read()
+        if not data:
+            logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+            continue
+
+        else:
+            logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
+
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():
@@ -70,7 +81,6 @@ class philips_hue(PluginInterface):
             self.protocol = "BLE"
             self.scan_filter_method = "uuid"
             self.scan_filter = "0000fe0f-0000-1000-8000-00805f9b34fb"
-
 
     class Device(PluginInterface.DeviceInterface):
         def __init__(self, mac_address, device_name):
@@ -91,15 +101,25 @@ class philips_hue(PluginInterface):
                 "color": 0x000000
             }
 
+            self.is_paired = False
+            self.is_trusted = False
+            self.is_connected = False
+
         async def connect_and_read(self):
             try:
                 # Step 1: Pair and Trust the Device
-                logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
-                paired_and_trusted = await pair_and_trust(self.mac_address)
+                if not self.is_paired or not self.is_trusted:
+                    logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
+                    paired_and_trusted = await pair_and_trust(self.mac_address)
 
-                if not paired_and_trusted:
-                    logging.error(f"Failed to pair with {self.mac_address} - {self.device_name}")
-                    return None
+                    if paired_and_trusted:
+                        self.is_paired = True
+                        self.is_trusted = True
+                    else:
+                        logging.error(f"Failed to pair with {self.mac_address} - {self.device_name}")
+                        return None
+                else:
+                    logging.info(f"Device {self.mac_address} is already paired and trusted.")
 
                 # Step 2: Connect and Read Data using Bleak
                 async with BleakClient(self.mac_address) as client:
@@ -107,11 +127,13 @@ class philips_hue(PluginInterface):
                         logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
                         return None
 
+                    self.is_connected = True
                     logging.info(f"Connected to {self.mac_address} - {self.device_name}")
 
                     # Perform operations
                     state = await self.read_light_state(client)
                     await asyncio.sleep(5.0)
+                    self.is_connected = False  # Reset after operations
                     return state
 
             except Exception as e:
@@ -199,7 +221,7 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
         try:
             # Spawn bluetoothctl
             child = pexpect.spawn('bluetoothctl', encoding='utf-8', timeout=30)
-            child.logfile = sys.stdout  # Log interaction for debugging
+            child.logfile = None  # Disable logging to stdout
 
             # Wait for the bluetoothctl prompt
             child.expect('#')
@@ -218,7 +240,7 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
             child.sendline(f'info {mac_address}')
             index = child.expect([
                 f"Device {mac_address} not found",
-                f"Device {mac_address} is not paired",
+                f"Paired: no",
                 f"Paired: yes",
                 pexpect.EOF,
                 pexpect.TIMEOUT
@@ -245,7 +267,7 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
                 child.close()
                 return False
 
-            # Initiate pairing
+            # Initiate pairing only if not already paired
             child.sendline(f'pair {mac_address}')
             index = child.expect([
                 'Pairing successful',
