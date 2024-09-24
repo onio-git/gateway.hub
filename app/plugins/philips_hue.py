@@ -5,6 +5,8 @@ from bleak import BleakClient
 import asyncio
 import subprocess
 import sys
+import pexpect
+
 
 # Philips Hue Play Light Bar
 LIGHT_CHARACTERISTIC = "932c32bd-0002-47a2-835a-a8d455b859dd"
