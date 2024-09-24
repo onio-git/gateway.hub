@@ -90,7 +90,7 @@ class ApiBackend():
             self.api_token = response_data['data']['accessToken']
             return True
         else:
-            logging.error("Failed to refresh token from server")
+            logging.error(f"Failed to refresh token from server: {response_data.get('statusCode')}")
             logging.debug(json_data)
             logging.debug(response_data)
             return False
@@ -112,7 +112,7 @@ class ApiBackend():
                 logging.info(f"Received command: {self.command}")
             return self.command
         else:
-            logging.error("Failed to ping server")
+            logging.error(f"Failed to ping server: {response_data.get('statusCode')}")
             logging.debug(json_data)
             logging.debug(response_data)
             return ""
@@ -126,7 +126,7 @@ class ApiBackend():
             self.location = response_data
             return True
         else:
-            logging.error("Failed to get location from Google API")
+            logging.error(f"Failed to get location from Google API: {response_data.status_code}")
             logging.debug(response_data)
             return False
 
@@ -152,7 +152,7 @@ class ApiBackend():
         if response_data.get('statusCode') == 200:
             return True
         else:
-            logging.error("Failed to set location with server")
+            logging.error(f"Failed to set location with server: {response_data.get('statusCode')}")
             logging.debug(json_data)
             logging.debug(response_data)
             return False
@@ -187,7 +187,7 @@ class ApiBackend():
         if response_data.get('statusCode') == 200:
             return True
         else:
-            logging.error("Failed to post scan results to server")
+            logging.error(f"Failed to post scan results to server: {response_data.get('statusCode')}")
             logging.debug(json_data)
             logging.debug(response_data)
             return False
@@ -225,5 +225,5 @@ class ApiBackend():
             return response_data['data']
         else:
             logging.debug(response_data)
-            logging.error("Failed to get flow from server")
+            logging.error(f"Failed to get flow from server: {response_data.get('statusCode')}")
             return False
