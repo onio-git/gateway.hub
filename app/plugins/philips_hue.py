@@ -3,6 +3,8 @@ from core.plugin_interface import PluginInterface
 from core.backend import ApiBackend
 from bleak import BleakClient
 import asyncio
+import subprocess
+import sys
 
 # Philips Hue Play Light Bar
 LIGHT_CHARACTERISTIC = "932c32bd-0002-47a2-835a-a8d455b859dd"
@@ -104,32 +106,38 @@ class philips_hue(PluginInterface):
 
         async def connect_and_read(self):
             try:
+                # Step 1: Pair and Trust the Device
+                logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
+                out, err = pair_and_trust(self.mac_address)
+                
+                if err:
+                    logging.error(f"Error during pairing/trusting: {err}")
+                    return None
+
+                logging.debug(f"bluetoothctl output:\n{out}")
+
+                # Optional: Verify if the device is paired and trusted
+                if "Pairing successful" not in out and "Already paired" not in out:
+                    logging.error(f"Failed to pair with {self.mac_address} - {self.device_name}")
+                    return None
+
+                # Step 2: Connect and Read Data using Bleak
                 async with BleakClient(self.mac_address) as client:
-                    
+                    if not client.is_connected:
+                        logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
+                        return None
+
                     logging.info(f"Connected to {self.mac_address} - {self.device_name}")
-                    # await self.introspect(client)
-
-                    # Pairing
-                    paired = await client.pair(protection_level=2)
-                    logging.debug(f"Paired: {paired}")
-
+                    
                     # Perform operations
-                    # await self.turn_light_off(client)
-                    # await asyncio.sleep(2.0)
-                    # await self.turn_light_on(client)
-                    # await asyncio.sleep(2.0)
-                    # await self.set_brightness(client, 100)
-                    # await self.set_color(client, color_by_name("white"))
-                    # await asyncio.sleep(2.0)
-                    # await self.set_color(client, color_by_name("red"))
-                    # await asyncio.sleep(2.0)
+                    # Example: Read light state
                     state = await self.read_light_state(client)
-                    print(state)
                     await asyncio.sleep(5.0)
                     return state
 
             except Exception as e:
                 logging.error(f"Error: {e}")
+                return None
 
         async def read_light_state(self, client):
             logging.info("Reading Light State...")
@@ -171,3 +179,31 @@ class philips_hue(PluginInterface):
             # Brightness range: 0-100 - converts to 1-254
             brightness = int((brightness / 100) * 254)
             await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
+
+
+
+def run_bluetoothctl_command(commands):
+    """
+    Runs a series of commands in bluetoothctl and returns the output.
+    """
+    process = subprocess.Popen(['bluetoothctl'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    out, err = process.communicate(commands)
+    return out, err
+
+def pair_and_trust(mac_address):
+    """
+    Automates the pairing and trusting process using bluetoothctl.
+    """
+    commands = f"""
+    power on
+    agent on
+    default-agent
+    scan on
+    pair {mac_address}
+    trust {mac_address}
+    connect {mac_address}
+    scan off
+    exit
+    """
+    out, err = run_bluetoothctl_command(commands)
+    return out, err
