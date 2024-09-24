@@ -131,7 +131,7 @@ class philips_hue(PluginInterface):
 
                     # Perform operations
                     state = await self.read_light_state(client)
-                    await asyncio.sleep(5.0)
+                    # await asyncio.sleep(5.0)
                     self.is_connected = False  # Reset after operations
                     return state
 
