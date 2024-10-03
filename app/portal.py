@@ -242,7 +242,7 @@ def index():
                             {% endfor %}
                         </select>
                         <label for="password">Password:</label>
-                        <input type="password" name="password" id="password" required>
+                        <input type="password" name="password" id="password">
                         <div class="button-group">
                             <input type="submit" value="Connect">
                             <button type="submit" formaction="/cancel">Cancel</button>
