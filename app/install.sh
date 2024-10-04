@@ -3,16 +3,14 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Update package list and upgrade packages
 sudo apt update
 sudo apt upgrade -y
 
-# Install necessary packages
 sudo apt install -y python3 python3-pip python3-flask python3-waitress \
                     network-manager dnsmasq iptables-persistent \
                     wireless-tools sudo net-tools
 
-# Disable conflicting services (if any)
+# Disable conflicting services 
 sudo systemctl stop dhcpcd
 sudo systemctl disable dhcpcd
 
