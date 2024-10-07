@@ -13,7 +13,7 @@ def is_portal_running():
     return result.stdout != b''
 
 def start_portal():
-    subprocess.run(['nohup', 'python3', 'portal.py', '&'])
+    subprocess.run(['nohup', 'python3', '/home/pi/Desktop/smarthub/app/portal.py', '&'])
 
 def stop_portal():
     subprocess.run(['pkill', '-f', 'portal.py'])
@@ -23,7 +23,7 @@ def is_hub_running():
     return result.stdout != b''
 
 def start_hub():
-    subprocess.run(['nohup', 'python3', 'main.py', '&'])
+    subprocess.run(['nohup', 'python3', '/home/pi/Desktop/smarthub/app/main.py', '&'])
 
 def stop_hub():
     subprocess.run(['pkill', '-f', 'main.py'])
