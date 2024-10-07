@@ -3,8 +3,8 @@ Description=Manager service for smarthub. Automating startup scripts and hub sof
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/Desktop/smarthub/app/manager.py
-WorkingDirectory=/home/pi/Desktop/smarthub/app
+ExecStart=/usr/bin/python3 /home/pi/Desktop/gateway.hub/app/manager.py
+WorkingDirectory=/home/pi/Desktop/gateway.hub/app
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
