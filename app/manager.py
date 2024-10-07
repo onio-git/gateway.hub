@@ -23,7 +23,7 @@ def is_hub_running():
     return result.stdout != b''
 
 def start_hub():
-    subprocess.run(['nohup', 'python3', '/home/pi/Desktop/gateway.hub/app/main.py', '&'])
+    subprocess.run(['nohup', 'python3', '/home/pi/Desktop/gateway.hub/app/main.py'])
 
 def stop_hub():
     subprocess.run(['pkill', '-f', 'main.py'])
