@@ -18,8 +18,11 @@ def start_portal():
 if __name__ == '__main__':
     try:
         while True:
-            if line.get_value() == 0 and not is_portal_running():
+            if line.get_value() == 1 and not is_portal_running():
+                print("Starting portal...")
                 start_portal()
+            else:
+                print("No reset detected")
             time.sleep(2)  
 
     except Exception as e:

@@ -1,0 +1,11 @@
+[Unit]
+Description=Manager service for smarthub. Automating startup scripts and hub software.
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/gateway.hub/manager.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
