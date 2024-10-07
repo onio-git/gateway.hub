@@ -8,7 +8,6 @@ import logging
 import asyncio
 from hashlib import md5
 from config.config import ConfigSettings
-from core.wifi import WifiManager
 from core.ble import BLEManager
 from core.backend import ApiBackend
 from core.flow import Flow
@@ -22,14 +21,10 @@ class Hub:
         self.serial = serial_no
         self.serial_hash = md5(self.serial.encode()).hexdigest() # Hash the serial number for security
         
-        self.wifi = WifiManager()
         self.api = ApiBackend()
         self.ble = BLEManager()
         self.flow = Flow()
         
-        # Get wifi credentials from config file if not provided by cli
-        self.ssid = ssid if ssid != '' else self.config.get('settings', 'wifi_ssid')
-        self.password = password if password != '' else self.config.get('settings', 'wifi_password')
         self.command = ""
         
 
@@ -42,11 +37,6 @@ class Hub:
         # self.load_plugin("flic") # Flic plugin
 
     def startup(self):
-        # Connect to wifi
-        # deal with wifi AP to get wifi credentials
-
-        if not self.wifi.connected:
-            self.wifi.connect(self.ssid, self.password)
         
         # Disable this to avoid unnecessary geolocation requests and costs.
         # local_ap_list = self.wifi.scan_wifi_networks()

@@ -1,8 +1,8 @@
 import json
 import requests
 import logging
+import socket
 from config.config import ConfigSettings
-
 
 
 class ApiBackend():
@@ -12,11 +12,8 @@ class ApiBackend():
         self.refresh_token = ""
         self.location = {}
         pass
-        
+    
 
-    
-    
-    
     def get_headers(self, include_auth_token=False) -> dict:
         headers = {
             'x-app-id': self.config.get('headers', 'x_app_id'),
