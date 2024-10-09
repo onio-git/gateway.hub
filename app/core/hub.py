@@ -13,7 +13,7 @@ from core.backend import ApiBackend
 from core.flow import Flow
 
 class Hub:
-    def __init__(self, ssid, password, serial_no):
+    def __init__(self, serial_no):
         self.config = ConfigSettings()
         self.plugin_dir = "plugins"
         self.plugins = []

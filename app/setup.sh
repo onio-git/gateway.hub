@@ -114,4 +114,4 @@ echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-ipforward.conf > /dev/n
 
 
 echo "Installation and configuration complete."
-echo "You can run the portal using: sudo python3 /home/pi/Desktop/portal.py"
+echo "You can run the portal using: sudo python3 portal.py"

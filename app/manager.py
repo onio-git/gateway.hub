@@ -13,7 +13,7 @@ def is_portal_running():
     return result.stdout != b''
 
 def start_portal():
-    subprocess.run(['nohup', 'python3', '~/gateway.hub/app/portal.py', '&'])
+    subprocess.run(['python3', 'portal.py'])
 
 def stop_portal():
     subprocess.run(['pkill', '-f', 'portal.py'])
@@ -23,7 +23,7 @@ def is_hub_running():
     return result.stdout != b''
 
 def start_hub():
-    subprocess.run(['nohup', 'python3', '~/gateway.hub/app/main.py'])
+    subprocess.run(['python3', 'main.py'])
 
 def stop_hub():
     subprocess.run(['pkill', '-f', 'main.py'])

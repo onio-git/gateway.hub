@@ -10,14 +10,26 @@ sudo apt-get install -y git
 
 # Clone the git repository
 echo "Cloning git repository..."
-sudo git clone git@github.com:onio-git/gateway.hub.git ~/gateway.hub
+if [ -d "gateway.hub/.git" ]; then
+    echo "Repository already exists. Pulling latest changes..."
+    cd "gateway.hub"
+    git pull
+else
+    echo "Cloning repository..."
+    git clone git@github.com:jaaseru/onio-public-hub.git "gateway.hub"
+fi
+
+sudo mkdir -p /opt/gateway.hub/
+sudo cp -R ~/gateway.hub/* /opt/gateway.hub/
+sudo chown -R root:root /opt/gateway.hub
+
 
 # Navigate to the project directory
-cd ~/gateway.hub
+cd /opt/gateway.hub/app
 
 # Install Python dependencies (if applicable)
-sudo apt install -y python3 python3-pip python3-flask python3-waitress \
-                    network-manager dnsmasq iptables-persistent \
+sudo apt install -y python3 python3-pip python3-flask python3-waitress python3-bleak python3-yaml \
+                    network-manager dhcpcd dnsmasq iptables-persistent \
                     wireless-tools sudo net-tools
 
 # Run any additional setup scripts
@@ -29,7 +41,6 @@ fi
 
 # Set up scripts to run on startup using systemd
 echo "Setting up startup service..."
-cd ~/gateway.hub/app
 sudo cp SmarthubManager.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable SmarthubManager.service

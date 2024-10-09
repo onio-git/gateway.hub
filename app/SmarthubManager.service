@@ -3,8 +3,8 @@ Description=Manager service for smarthub. Automating startup scripts and hub sof
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 ~/gateway.hub/app/manager.py
-WorkingDirectory=~/gateway.hub/app
+ExecStart=/usr/bin/python3 /opt/gateway.hub/app/manager.py
+WorkingDirectory=/opt/gateway.hub/app
 StandardOutput=inherit
 StandardError=inherit
 Restart=always
