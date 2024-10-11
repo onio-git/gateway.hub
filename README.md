@@ -34,7 +34,7 @@ The console may ask you to verify a cryptographic key. Press yes.
 Once successfully ssh into the Pi, continue:
 
 11. Get the install script from remote repository:
-  $ wget https://raw.githubusercontent.com/jaaseru/onio-public-hub/refs/heads/main/app/install.sh
+  $ wget https://raw.githubusercontent.com/onio-git/gateway.hub/refs/heads/master/app/install.sh
 12. Set permissions:
   $ sudo chmod +x install.sh
 13. Run the installation script:
