@@ -26,7 +26,7 @@ if [ -d "$REPO_DIR/.git" ]; then
 else
     echo "Cloning repository..."
     sudo mkdir -p /opt/gateway.hub
-    git clone git@github.com:onio-git/gateway.hub.git "$REPO_DIR"
+    git clone https://github.com/onio-git/gateway.hub.git "$REPO_DIR"
 fi
 
 
