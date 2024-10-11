@@ -8,20 +8,32 @@ echo "Updating system packages..."
 sudo apt-get update && sudo apt-get upgrade -y
 sudo apt-get install -y git
 
-# Clone the git repository
-echo "Cloning git repository..."
-if [ -d "gateway.hub/.git" ]; then
-    echo "Repository already exists. Pulling latest changes..."
-    cd "gateway.hub"
-    git pull
+# Clone or update the git repository
+echo "Updating git repository..."
+
+REPO_DIR="/opt/gateway.hub"
+
+if [ -d "$REPO_DIR/.git" ]; then
+    echo "Repository already exists. Are you sure you want to update it? (y/n) This will discard any local changes such as seral number."
+    read -r response
+    if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        echo "Exiting..."
+        exit 1
+    fi
+    cd "$REPO_DIR"
+    git reset --hard
+    git pull 
 else
     echo "Cloning repository..."
-    git clone git@github.com:jaaseru/onio-public-hub.git "gateway.hub"
+    sudo mkdir -p /opt/gateway.hub
+    git clone https://github.com/jaaseru/onio-public-hub.git "$REPO_DIR"
 fi
 
-sudo mkdir -p /opt/gateway.hub/
-sudo cp -R ~/gateway.hub/* /opt/gateway.hub/
+
+# sudo cp -R "$HOME/gateway.hub/app/"* /opt/gateway.hub/app/
 sudo chown -R root:root /opt/gateway.hub
+sudo chown root:root /opt/gateway.hub/app/*.py
+sudo chmod 644 /opt/gateway.hub/app/*.py
 
 
 # Navigate to the project directory
@@ -44,7 +56,38 @@ echo "Setting up startup service..."
 sudo cp SmarthubManager.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable SmarthubManager.service
+sudo systemctl restart SmarthubManager.service
+
+# Create quick commands
+echo "Creating quick commands..."
+
+# 1. hub_portal
+sudo bash -c 'echo -e "#!/bin/bash\nsudo /usr/bin/python3 /opt/gateway.hub/app/portal.py" > /usr/local/bin/hub_portal'
+sudo chmod +x /usr/local/bin/hub_portal
+
+# 2. hub_config
+sudo bash -c 'echo -e "#!/bin/bash\nsudo nano /opt/gateway.hub/app/config/config.ini" > /usr/local/bin/hub_config'
+sudo chmod +x /usr/local/bin/hub_config
+
+# 3. hub_reboot
+sudo bash -c 'echo -e "#!/bin/bash\nsudo systemctl daemon-reload && sudo systemctl restart SmarthubManager.service && sudo reboot" > /usr/local/bin/hub_reboot'
+sudo chmod +x /usr/local/bin/hub_reboot
+
+# 4. hub_logs
+sudo bash -c 'echo -e "#!/bin/bash\nsudo journalctl -u SmarthubManager.service -f" > /usr/local/bin/hub_logs'
+sudo chmod +x /usr/local/bin/hub_logs
 
 # Reboot the system to apply changes
-echo "Installation complete. Rebooting..."
+echo ""
+echo "----------------------------------------"
+echo "Installation complete. Rebooting the device..." 
+
+echo "Please wait for the device to reboot and then ssh back in."
+echo "You can then run the following commands to interact with the hub:"
+echo "  - hub_portal:   Start the web portal"
+echo "  - hub_config:   Edit the configuration file"
+echo "  - hub_reboot:   Restart the hub with new configurations"
+echo "  - hub_logs:     View the logs"
+
+sleep 5
 sudo reboot

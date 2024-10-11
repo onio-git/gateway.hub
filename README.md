@@ -1,44 +1,113 @@
-# Smart Hub CLI
-This is a command-line interface (CLI) tool for controlling a Smart Hub using WiFi. It allows you to configure and interact with the hub via various options.
+Hi! here is an install procedure for the Raspberry Pi 5 hub.
 
-## Installation
-Make sure you have Python installed. Clone this repository and install the required dependencies:
+For the setup you need:
+- Raspberry Pi 5
+- Micro SD card
+- Micro SD card reader
+- USB-C power cable
+- Ethernet cable
+Optional extra:
+- Keyboard with usb for the RPi
+- External monitor + micro-HDMI cable for the RPi
 
-```bash
-git clone <repository-url>
-cd <repository-directory>
-pip install -r requirements.txt
-```
+1. On your PC, download the Raspberry Pi Imager Program.
+2. Insert your micro-SD card into your PC.
+3. In the Imager, choose OS "Ubuntu Bookworm 64 bit lite"
+4. Choose storage - Pick your SD-card from the list
+5. Enable advanced settings - enable ssh, choose a host name, username and password.
+6. No need to configure Wifi.
+7. Save the settings and write the image to the SD-card
 
-## Usage
-Run the CLI with the following options
+8. Insert the SD-card into your Pi.
+9. Plug in power and ethernet to your Pi.
+10. After a few seconds you can try to locate your Pi on ssh
+  $ ssh <username>@<hostname>.local
 
-```bash
-python main.py [OPTIONS]
-```
+If this does not work, you must try to get the Pi ip-address by some other means. 
+One way is to connect a monitor and keyboard to the Pi and see the assigned ip-address 
+with: $ ifconfig 
+then using the ssh command:
+  $ ssh <username>@<local-ip-address>
+  
+The console may ask you to verify a cryptographic key. Press yes.
 
-## Options
---ssid: The SSID of the WiFi network to connect to. (default: '')
---password: The password of the WiFi network to connect to. (default: '')
---log-level: Set the log level. Choices are debug, info, warning, error, critical. (default: 'info')
---serial-number: The serial number of the hub. (default: '')
---auto-scan: Automatically scan for devices. (default: False)
---auto-collect: Automatically collect data from the emulator device. (default: False)
+Once successfully ssh into the Pi, continue:
 
-## Example
+11. Get the install script from remote repository:
+  $ wget https://raw.githubusercontent.com/jaaseru/onio-public-hub/refs/heads/main/app/install.sh
+12. Set permissions:
+  $ sudo chmod +x install.sh
+13. Run the installation script:
+  $ sudo ./install.sh
+  
+The Pi will reboot in the end. Wait a while, and ssh again.
 
-```bash
-python main.py --ssid "MyNetwork" --password "MyPassword" --log-level "debug" --auto-scan --auto-collect
-```
+The hub should now be active as a background service, but whithout a configured serial number
+(until we can use hwid this must be configured manually)
 
-## Logging
-The application supports different log levels to help with debugging and monitoring:
+14. See that the hub service is running:
+  $ sudo systemctl status SmarthubManager.service
+15. Configure the serial number:
+  $ hub_config
+16. Write your serial number in the indicated spot. Then save ctrl+s, and exit ctrl+x.
+17. Reboot with new config:
+  $ hub_reboot
+18. Wait a while and ssh again. Check that the service is running again:
+  $ sudo systemctl status SmarthubManager.service
 
--Debug: Detailed information, typically of interest only when diagnosing problems.
--Info: Confirmation that things are working as expected.
--Warning: An indication that something unexpected happened, or indicative of some problem in the near future.
--Error: Due to a more serious problem, the software has not been able to perform some function.
--Critical: A serious error, indicating that the program itself may be unable to continue running.
+Now the hub should autenticate and respond to scan commands if the serial number is properly 
+registered in the backend. The hub runs emulators by default. add the devices by scanning and 
+adding the results in the frontend.
 
-## Configuration
-Ensure that your configuration settings are correctly set up in the config/config.py file. This includes default values for the hub's serial number and other settings.
+
+To enable wifi on your hub:
+1. ssh into the hub and use the capture portal feature
+  $ hub_portal
+2. This will start a wifi hotspot that you can connect to with a smart phone. 
+   Connect to "ONiO Smarthub RPi" and use the password "onio.com". Soon a page should pop up.
+   Select your local wifi from the options and input your wifi password. Press continue.
+3. The hub should now use the internal NetworkManager to connect to the wifi. Test this by 
+   Removing the ethernet cable and test ssh. 
+4. Optionally check that the connection was successful:
+  $ sudo nmcli connection show
+
+
+
+The hub runs as a background service on startup, with the script manager.py.
+To stop the service:
+  $ sudo systemctl stop SmarthubManager.service
+To start:
+  $ sudo systemctl start SmarthubManager.service
+To restart:
+  $ sudo systemctl restart SmarthubManager.service
+
+I have some aliases set up by the install.sh script:
+$ hub_portal - Starts the wifi hotspot allowing to change wifi.
+$ hub_logs   - Displays the logs of the SmarthubManager.service in real-time. 
+               Similar to regular console output of the python hub.
+$ hub config - Opens the configuration file in nano for editing.
+$ hub_reboot - Reloads the systemd daemon, restarts the smart hub service, and reboots the Raspberry Pi. Needed for applying new config.
+(Note that running the install script again will reset the local changes to config.)
+
+
+Please ask me if you have any troubles.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

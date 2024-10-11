@@ -13,8 +13,6 @@ from log.log import setup_logging
 @click.option('--serial-number', help='The serial number of the hub', default='')
 @click.option('--auto-scan', help='Automatically scan for devices', default=False, is_flag=True)
 @click.option('--auto-collect', help='Automatically collect data from emulator device', default=False, is_flag=True)
-
-
 def main(log_level, serial_number, auto_scan, auto_collect):
     setup_logging(log_level)
 
@@ -41,6 +39,7 @@ def main(log_level, serial_number, auto_scan, auto_collect):
 
 if __name__ == "__main__":
     main()
+
 
 
 def get_hardware_id():

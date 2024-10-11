@@ -308,6 +308,12 @@ def connect_to_wifi(ssid, password):
             'password', password_escaped
         ])
 
+        # Set autoconnect to yes for the connection
+        run_command([
+            'nmcli', 'connection', 'modify', ssid_escaped,
+            'connection.autoconnect', 'yes'
+        ])
+
         # Wait for connection
         time.sleep(10)
 

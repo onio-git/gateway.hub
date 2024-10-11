@@ -67,7 +67,6 @@ class Hub:
                 if self.command == "rebooting":
                     logging.info("Rebooting...")
                     self.shutdown()
-                    self.startup()
 
                 elif self.command == "scan_devices":
                     for plugin in self.plugins:
@@ -108,9 +107,8 @@ class Hub:
         
 
     def shutdown(self):
-        # Disconnect from wifi
-        # Disconnect from bluetooth
-        # Disconnect from server
+        logging.info("Shutting down...")
+        subprocess.run(['sudo', 'reboot'])
         pass
 
 
