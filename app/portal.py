@@ -138,10 +138,9 @@ def cancel():
     stop_event.set()
     return 'Hotspot has been terminated.'
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-@app.route('/', methods=['GET', 'POST'])
-def index():
+@app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
+@app.route('/<path:path>', methods=['GET', 'POST'])
+def index(path=''):
     logger.info("Serving captive portal page...")
     if request.method == 'POST':
         ssid = request.form.get('ssid')
