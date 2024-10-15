@@ -40,7 +40,7 @@ sudo chmod 644 /opt/gateway.hub/app/*.py
 cd /opt/gateway.hub/app
 
 # Install Python dependencies (if applicable)
-sudo apt install -y python3 python3-pip python3-flask python3-waitress python3-bleak python3-yaml \
+sudo apt install -y python3 python3-pip python3-flask python3-waitress python3-bleak python3-yaml python3-pexpect \
                     network-manager dhcpcd dnsmasq iptables-persistent \
                     wireless-tools sudo net-tools
 
