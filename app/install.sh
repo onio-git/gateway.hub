@@ -52,11 +52,23 @@ if [ -f setup.sh ]; then
 fi
 
 # Set up scripts to run on startup using systemd
-echo "Setting up startup service..."
+echo "Setting up managerp service..."
 sudo cp SmarthubManager.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable SmarthubManager.service
 sudo systemctl restart SmarthubManager.service
+
+# Set up scripts to run on startup using systemd
+echo "Setting up server service..."
+sudo cp SmarthubServer.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable SmarthubServer.service
+sudo systemctl restart SmarthubServer.service
+
+# Edit hostname
+echo "Setting up hostname..."
+sudo bash -c 'echo "onio-hub" > /etc/hostname'
+sudo systemctl restart hostname
 
 # Create quick commands
 echo "Creating quick commands..."

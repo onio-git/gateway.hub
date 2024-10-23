@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smarthub</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="/home/juaa/Desktop/gateway.hub/app/templates/static/styles.css">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/vnd.microsoft.icon">
+</head>
+
+<body>
+    <header>
+        <h1>ONiO Smart hub</h1>
+        
+    </header>
+
+    <div class="main">
+
+        <div class="card">
+            <h2>Quick Controls</h2>
+            <div class="card-content">
+                <button onclick="activate_hotspot()">Hotspot mode</button>
+                <button onclick="hub_reboot()">Reboot</button>
+            </div>
+            <div class="card-footnote">
+
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Wi-Fi</h2>
+            <div class="card-content">
+                Currently connected: {{ current_ssid }}
+                <a href="/captive_portal">Change network</a>
+            </div>
+            <div class="card-footnote">
+
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Registration</h2>
+            <div class="card-content">
+                 <form>
+                    <label for="serial_number">Serial number:</label>
+                    <div id="copy_field">
+                        <input type="text" id="serial_number" value="{{ serial_number }}" readonly>
+                        <button class="copy-button" onclick="copyToClipboard()">Copy</button>
+                    </div>
+                    <h3>Register your smarthub here: <a href="#" onclick="openInBrowser('https://uat-onio-flow.mpire.asia/smarthub/register')">Smarthub Home Page</a></h3>
+                </form>
+            </div>
+            <div class="card-footnote">
+
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Hub Status</h2>
+            <div class="card-content">
+                <table>
+                    <!-- hardware -->
+                    <tr>
+                        <td>Hardware model:</td>
+                        <td>{{ hardware_model }}</td>
+                    </tr>
+                    <!-- software -->
+                    <tr>
+                        <td>Software version:</td>
+                        <td>{{ software_version }}</td>
+                    </tr>
+                    <!-- system time -->
+                    <tr>
+                        <td>System time:</td>
+                        <td>{{ system_time }}</td>
+                    </tr>
+                    <!-- temperature -->
+                    <tr>
+                        <td>Temperature:</td>
+                        <td>{{ temperature }} °C</td>
+                    </tr>
+                    <!-- cpu -->
+                    <tr>
+                        <td>Power:</td>
+                        <td>{{ system_voltage }}V</td>
+                    </tr>
+                    <!-- memory -->
+                    <tr>
+                        <td>Memory usage:</td>
+                        <td>{{ memory_usage }} MB</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="card-footnote">
+
+            </div>
+        </div>
+
+    </div>
+</body>
+
+
+
+<script>
+    function copyToClipboard() {
+        var copyText = document.getElementById("serial_number");
+        copyText.select();
+        copyText.setSelectionRange(0, 99999); // For mobile devices
+        document.execCommand("copy");
+    }
+
+    function openInBrowser(url) {
+        // Try to open in a new window/tab
+        url = url + "?serial_number={{serial_number}}";
+        var newWindow = window.open(url, '_blank');
+        if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+            // If it fails, try setting location.href
+            window.location.href = url;
+        }
+    }
+
+    function activate_hotspot() {
+        fetch('/hotspot_mode')  
+    }
+
+    function hub_reboot() {
+        fetch('/reboot')  
+    }
+</script>
+</html>

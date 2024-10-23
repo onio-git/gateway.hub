@@ -2,6 +2,10 @@
 from core.backend import ApiBackend
 import logging
 import json
+import asyncio
+import time
+import threading
+from datetime import datetime
 
 
 class Flow():
@@ -15,9 +19,11 @@ class Flow():
         self.name = None
         self.flow_table = []
 
+    
+
 
     class FlowNode():
-        def __init__(self, node_id, node_type, node_name, node_data):
+        def __init__(self, node_id, node_type, node_name, node_data, node_function=None):
             self.node_id: int = node_id
             self.node_type = node_type
             self.node_name = node_name
@@ -27,9 +33,13 @@ class Flow():
             self.node_data = node_data
             self.is_root = False
             self.is_leaf = False
+            self.function = node_function
 
-        def function(self):
-            print("node " + str(self.node_id) + ": " + self.node_name + " executed. Next: " + str([vertex.child for vertex in self.outputs]))
+        def run(self):
+            logging.info("Running node: " + self.node_name)
+            self.function()
+
+        
 
     class Vertex():
         def __init__(self, parent, output_nr, child, input_nr):
@@ -41,25 +51,25 @@ class Flow():
 
 
     def print_flow(self) -> None:
-        print("Current flow:")
-        print("  ID: " + self.id)
-        print("  Name: " + self.name)
-        print("  Creation Date: " + self.creation_date)
-        print("  Hash: " + self.md5)
-        print("  Flow:")
+        logging.info("Current flow:")
+        logging.info("  ID: " + self.id)
+        logging.info("  Name: " + self.name)
+        logging.info("  Creation Date: " + self.creation_date)
+        logging.info("  Hash: " + self.md5)
+        logging.info("  Flow:")
         for node in self.flow_table:
-            print("  Node:")
-            print("    Node ID: " + str(node.node_id))
-            print("    Node Type: " + node.node_type)
-            print("    Node Name: " + node.node_name)
-            print("    Device: " + str(node.device))
-            print("    Data: " + str(node.node_data))
-            print("    Inputs:")
+            logging.info("  Node:")
+            logging.info("    Node ID: " + str(node.node_id))
+            logging.info("    Node Type: " + node.node_type)
+            logging.info("    Node Name: " + node.node_name)
+            logging.info("    Device: " + str(node.device))
+            logging.info("    Data: " + str(node.node_data))
+            logging.info("    Inputs:")
             for vertex in node.inputs:
-                print("      Parent: " + str(vertex.parent) + " Output: " + str(vertex.output_nr))
-            print("    Outputs:")
+                logging.info("      Parent: " + str(vertex.parent) + " Output: " + str(vertex.output_nr))
+            logging.info("    Outputs:")
             for vertex in node.outputs:
-                print("      Child: " + str(vertex.child) + " Input: " + str(vertex.input_nr))
+                logging.info("      Child: " + str(vertex.child) + " Input: " + str(vertex.input_nr))
 
 
     def set_flow(self, flow_json) -> bool:
@@ -77,7 +87,6 @@ class Flow():
         self.parse_flow()
         logging.info("Flow updated")
         self.print_flow()
-        self.execute_flow()
         return True
 
     def parse_flow(self) -> None:
@@ -143,3 +152,41 @@ class Flow():
                 self.execute_node(node)
         print("Flow executed")
         return
+
+
+    # standard_functions = {
+    #     "loop_event": self.loop_event,
+    #     "clock_event": self.clock_event,
+    #     "date_event": self.date_event,
+    #     "sun_rise_event": self.sun_rise_event,
+    #     "sun_set_event": self.sun_set_event,
+    #     "the_day_is_between": self.the_day_is_between,
+    #     "the_time_is_between": self.the_time_is_between,
+    #     "the_day_is": self.the_day_is,
+    #     "delay": self.delay,
+    #     "and": self.and_operator,
+    #     "or": self.or_operator,
+    #     "not": self.not_operator,
+    #     "message": self.message
+    # }
+
+
+    # def loop_event(self, unit: str, value: int) -> None:
+     
+
+    #     def timer_function():
+    #         if unit == "seconds":
+    #             time.sleep(value)
+    #         else if unit == "minutes":
+    #             time.sleep(value * 60)
+    #         else if unit == "hours":
+    #             time.sleep(value * 3600)
+    #         else if unit == "days":
+    #             time.sleep(value * 86400)
+    #         else if unit == "months":
+    #             time.sleep(value * 2592000)
+    #         else:
+    #             raise ValueError(f"Unsupported time unit: {unit}")
+
+    #     threading.Thread(target=timer_function).start()
+        

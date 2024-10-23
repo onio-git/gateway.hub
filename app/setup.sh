@@ -88,7 +88,7 @@ if [ "$INTERFACE" == "wlan0" ]; then
             iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
 
             # Redirect all HTTP traffic to the captive portal
-            iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+            iptables -t nat -A PREROUTING -i wlan0 -p tcp --dport 8080 -j REDIRECT --to-port 80
 
             # Save the iptables rules
             netfilter-persistent save

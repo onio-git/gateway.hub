@@ -19,7 +19,7 @@ class ApiBackend():
             'x-app-id': self.config.get('headers', 'x_app_id'),
             'x-app-secret': self.config.get('headers', 'x_app_secret')
         }
-        if include_auth_token:
+        if include_auth_token and self.api_token:
             headers['Authorization'] = "Bearer " + self.api_token
         return headers
 
@@ -93,10 +93,10 @@ class ApiBackend():
             return False
 
 
-    def ping_server(self) -> str:
+    def ping_server(self, serial_hash) -> str:
         if self.api_token == "":
             logging.error("No API token found. Cannot ping server")
-            self.api_token = self.get_token(self.serial_hash)
+            self.api_token = self.get_token(serial_hash)
             return False
         
         headers = self.get_headers(include_auth_token=True)

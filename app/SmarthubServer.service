@@ -1,0 +1,13 @@
+[Unit]
+Description=Server for smarthub. 
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/gateway.hub/app/server.py
+WorkingDirectory=/opt/gateway.hub/app
+StandardOutput=inherit
+StandardError=inherit
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

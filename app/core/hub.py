@@ -3,6 +3,7 @@
 import time
 import threading
 import importlib
+import subprocess
 import os
 import logging
 import asyncio
@@ -61,7 +62,10 @@ class Hub:
     
 
     def loop(self, auto_collect, period=5):
-            
+
+        # Initial scan
+        self.scan_for_devices()
+
         while True:
             try:                
                 if self.command == "rebooting":
@@ -69,16 +73,7 @@ class Hub:
                     self.shutdown()
 
                 elif self.command == "scan_devices":
-                    for plugin in self.plugins:
-                        if plugin.protocol == 'BLE':
-                            asyncio.run(self.ble.scan_by_plugin(plugin, timeout=10))
-                            
-                        elif plugin.protocol == 'WiFi':
-                            pass
-                        elif plugin.protocol == 'Zigbee':
-                            pass
-                        elif plugin.protocol == 'Zwave':
-                            pass
+                    self.scan_for_devices()
 
 
                     if not self.api.post_scan_results(self.plugins):
@@ -89,12 +84,13 @@ class Hub:
 
                 elif self.command == "":
                     # if auto_collect:
-                    logging.debug("Automatically executing plugins")
-                    self.execute_plugins()
+                    # logging.debug("Automatically executing plugins")
+                    # self.execute_plugins()
+                    pass
                 
                 self.command = ""
                 time.sleep(period)
-                self.command = self.api.ping_server()
+                self.command = self.api.ping_server(self.serial_hash)
                 
 
 
@@ -127,6 +123,18 @@ class Hub:
         self.plugins.append(plugin)
         logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
 
+
+    def scan_for_devices(self):
+        for plugin in self.plugins:
+            if plugin.protocol == 'BLE':
+                asyncio.run(self.ble.scan_by_plugin(plugin, timeout=10))
+                
+            elif plugin.protocol == 'WiFi':
+                pass
+            elif plugin.protocol == 'Zigbee':
+                pass
+            elif plugin.protocol == 'Zwave':
+                pass
 
 
     def execute_plugins(self):

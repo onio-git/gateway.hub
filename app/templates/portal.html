@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smarthub</title>
+    <!-- Link to your CSS file -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Link to your favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/vnd.microsoft.icon">
+</head>
+<body>
+    <div class="container">
+        <h1>ONiO Smarthub</h1>
+        <h2 for="serial_number">Serial number: {{ serial_number }}</h2>
+        <h2>Connect to Wi-Fi</h2>
+        <form method="post">
+            <label for="ssid">Select Network:</label>
+            <select name="ssid" id="ssid" required>
+                {% for ssid, signal_strength in networks %}
+                    <option value="{{ ssid }}">{{ ssid }} ({{ signal_strength }} dBm)</option>
+                {% endfor %}
+            </select>
+            <label for="password">Password:</label>
+            <input type="password" name="password" id="password" placeholder="Enter Wi-Fi password">
+            <div class="button-group">
+                <button type="submit" formaction="/cancel">Cancel</button>
+                <input type="submit" value="Connect">
+            </div>
+        </form>
+    </div>
+</body>
+</html>
