@@ -157,7 +157,7 @@ def cleanup():
 def signal_handler(sig, frame):
     logger.info(f"Signal {sig} received. Setting stop event.")
     stop_event.set()
-    
+
 
 if __name__ == '__main__':
     # Register cleanup function
@@ -175,7 +175,12 @@ if __name__ == '__main__':
         setup_hotspot()
 
         logger.info("Entering main loop. Waiting for stop event...")
+        seconds = 0
         while not stop_event.is_set():
+            if seconds > 300:
+                logger.info("Timeout reached. Exiting...")
+                break
+            seconds += 1
             time.sleep(1)  # Sleep briefly to allow signal handling
 
     except Exception as e:
