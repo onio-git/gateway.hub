@@ -60,21 +60,18 @@ class philips_hue(PluginInterface):
     async def run_devices(self):
         for _, device in self.devices.items():
             # Check if the device is already connected
-            logging.info(f"{device}")
-            async with BleakClient(device.mac_address) as client:
-                logging.info(f"{client}")
-                # logging.info(f"Connecting to {device.mac_address} - {device.device_name}")
-                # if client.is_connected:
-                #     logging.info(f"Device {device.mac_address} is already connected.")
+            # async with BleakClient(device.mac_address) as client:
+            #     if client.is_connected:
+            #         logging.info(f"Device {device.mac_address} is already connected.")
 
             # If not connected, attempt to connect and read
-            # data = await device.connect_and_read()
-            # if not data:
-            #     logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
-            #     continue
-            #
-            # else:
-            #     logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
+            data = await device.connect_and_read()
+            if not data:
+                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+                continue
+
+            else:
+                logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():
@@ -111,6 +108,7 @@ class philips_hue(PluginInterface):
 
         async def connect_and_read(self):
             try:
+                logging.info(f"Connecting to {self.mac_address} - {self.device_name}...")
                 # Step 1: Pair and Trust the Device
                 if not self.is_paired or not self.is_trusted:
                     logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
