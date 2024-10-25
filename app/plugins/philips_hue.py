@@ -125,19 +125,19 @@ class philips_hue(PluginInterface):
 
                 # Step 2: Connect and Read Data using Bleak
                 async with BleakClient(self.mac_address) as client:
-                    for service in client.services:
-                        print(f"[Service] {service.uuid}: {service.description}")
-                        for char in service.characteristics:
-                            # print(f"  [Characteristic] {char.uuid}: {char.description}")
-                            try:
-                                print(f"  Characteristic UUID: {char.uuid}")
-                                print(f"  Properties: {char.properties}")
-                            #     if "read" in char.properties:
-                            #         value = await client.read_gatt_char(char.uuid)
-                            #         print(f"    Value: {value}")
-
-                            except Exception as e:
-                                print(f"    Error reading {char.uuid}: {e}")
+                    # for service in client.services:
+                    #     print(f"[Service] {service.uuid}: {service.description}")
+                    #     for char in service.characteristics:
+                    #         # print(f"  [Characteristic] {char.uuid}: {char.description}")
+                    #         try:
+                    #             print(f"  Characteristic UUID: {char.uuid}")
+                    #             print(f"  Properties: {char.properties}")
+                    #         #     if "read" in char.properties:
+                    #         #         value = await client.read_gatt_char(char.uuid)
+                    #         #         print(f"    Value: {value}")
+                    #
+                    #         except Exception as e:
+                    #             print(f"    Error reading {char.uuid}: {e}")
 
                     if not client.is_connected:
                         logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
@@ -148,6 +148,16 @@ class philips_hue(PluginInterface):
 
                     # Perform operations
                     state = await self.read_light_state(client)
+
+
+                    async def toggle_light(client, current_state):
+                        command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
+                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
+                        print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
+
+                    if state["light_is_on"]:
+                        await toggle_light(client, True)
+
                     # await asyncio.sleep(5.0)
                     self.is_connected = False  # Reset after operations
                     return state
