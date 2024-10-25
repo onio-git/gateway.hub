@@ -125,7 +125,9 @@ class philips_hue(PluginInterface):
 
                 # Step 2: Connect and Read Data using Bleak
                 async with BleakClient(self.mac_address) as client:
-                    logging.info(client.services)
+                    for service in client.services:
+                        logging.info(service)
+
                     if not client.is_connected:
                         logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
                         return None
