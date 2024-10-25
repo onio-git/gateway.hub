@@ -24,6 +24,7 @@ COLOR_CHARACTERISTIC = "932c32bd-0005-47a2-835a-a8d455b859dd"
 COMBINED_CHARACTERISTIC = "932c32bd-0007-47a2-835a-a8d455b859dd"
 FIRMWARE_CHARACTERISTIC = "00002a28-0000-1000-8000-00805f9b34fb"
 
+
 def color_by_name(name: str) -> bytearray:
     name = name.lower()
     color_map = {
@@ -41,6 +42,7 @@ def color_by_name(name: str) -> bytearray:
     }
     return color_map.get(name, bytearray([0x30, 0x50, 0x30, 0x54]))
 
+
 class philips_hue(PluginInterface):
     def __init__(self):
         self.protocol = "BLE"
@@ -51,6 +53,7 @@ class philips_hue(PluginInterface):
         if self.plugin_active:
             return
         self.plugin_active = True
+        logging.info("Philips Hue Plugin is active.")
         asyncio.run(self.run_devices())
         self.plugin_active = False
 
@@ -69,7 +72,6 @@ class philips_hue(PluginInterface):
 
             else:
                 logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
-
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():
@@ -209,6 +211,7 @@ class philips_hue(PluginInterface):
                 await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
             except Exception as e:
                 logging.error(f"Failed to set brightness: {e}")
+
 
 async def pair_and_trust(mac_address, retries=3, delay=5):
     """
