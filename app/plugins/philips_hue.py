@@ -149,7 +149,6 @@ class philips_hue(PluginInterface):
                     # Perform operations
                     state = await self.read_light_state(client)
 
-
                     async def toggle_light(client, current_state):
                         command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
                         await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
@@ -157,6 +156,8 @@ class philips_hue(PluginInterface):
 
                     if state["light_is_on"]:
                         await toggle_light(client, True)
+                    else:
+                        await toggle_light(client, False)
 
                     # await asyncio.sleep(5.0)
                     self.is_connected = False  # Reset after operations
