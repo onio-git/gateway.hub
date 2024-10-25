@@ -11,7 +11,7 @@ class BLEManager:
     
 
     async def scan_by_plugin(self, plugin, timeout=5) -> list:
-        logging.info("Scanning for devices in plugin: " + plugin.__class__.__name__ + "...")
+        logging.info("Scanning for devices in pluginsssss: " + plugin.__class__.__name__ + "...")
         search = plugin.SearchableDevice()
         logging.info(f"Filtering by: {search.scan_filter_method} - {search.scan_filter}")
 
