@@ -1,24 +1,21 @@
-
-
-
 import logging
 from bleak import BleakScanner, BleakClient
+
 
 class BLEManager:
     def __init__(self):
         self.scanner = BleakScanner()
         pass
-    
 
     async def scan_by_plugin(self, plugin, timeout=5) -> list:
-        logging.info("Scanning for devices in pluginsssss: " + plugin.__class__.__name__ + "...")
+        logging.info("Scanning for devices in plugin: " + plugin.__class__.__name__ + "...")
         search = plugin.SearchableDevice()
         logging.info(f"Filtering by: {search.scan_filter_method} - {search.scan_filter}")
-
+        logging.info(f"scan filter method: {search.scan_filter_method}")
         if search.scan_filter_method == 'emulator':
             logging.info("Adding emulators:")
             self.list_devices(plugin)
-            return 
+            return
 
         def filter_func(result: tuple) -> bool:
             _, adv_data = result
@@ -36,8 +33,9 @@ class BLEManager:
                     if search.scan_filter in manufacturer_data_bytes:
                         return True
             return False
-        
+
         results = await self.scanner.discover(timeout=timeout, return_adv=True)
+        logging.info(f"Found {len(results)} devices.")
         for _, result in results.items():
             logging.debug(result)
             if filter_func(result):
@@ -45,8 +43,7 @@ class BLEManager:
                 plugin.devices[result[0].address] = new_device
 
         self.list_devices(plugin)
-        return 
-
+        return
 
     def list_devices(self, plugin) -> None:
         for id, device in plugin.devices.items():
@@ -54,11 +51,8 @@ class BLEManager:
         if not plugin.devices:
             logging.info("  No devices found.")
 
-
-
     async def connect_device(self, device) -> BleakClient:
         logging.info(f"Connecting to device: {device.device_name} ({device.mac_address})")
         client = BleakClient(device.mac_address)
         await client.connect()
         return client
-
