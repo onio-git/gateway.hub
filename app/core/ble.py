@@ -41,11 +41,11 @@ class BLEManager:
             if filter_func(result):
                 new_device = plugin.Device(result[0].address, result[0].name)
                 plugin.devices[result[0].address] = new_device
-        logging.info(plugin)
         self.list_devices(plugin)
         return
 
     def list_devices(self, plugin) -> None:
+        logging.info(f"plugin items {plugin.devices.items()}")
         for id, device in plugin.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
         if not plugin.devices:
