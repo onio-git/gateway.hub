@@ -128,11 +128,14 @@ class philips_hue(PluginInterface):
                     for service in client.services:
                         print(f"[Service] {service.uuid}: {service.description}")
                         for char in service.characteristics:
-                            print(f"  [Characteristic] {char.uuid}: {char.description}")
+                            # print(f"  [Characteristic] {char.uuid}: {char.description}")
                             try:
-                                if "read" in char.properties:
-                                    value = await client.read_gatt_char(char.uuid)
-                                    print(f"    Value: {value}")
+                                print(f"  Characteristic UUID: {char.uuid}")
+                                print(f"  Properties: {char.properties}")
+                            #     if "read" in char.properties:
+                            #         value = await client.read_gatt_char(char.uuid)
+                            #         print(f"    Value: {value}")
+
                             except Exception as e:
                                 print(f"    Error reading {char.uuid}: {e}")
 
