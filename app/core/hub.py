@@ -83,6 +83,7 @@ class Hub:
                     
 
                 elif self.command == "":
+                    logging.info(auto_collect)
                     # if auto_collect:
                     # logging.debug("Automatically executing plugins")
                     # self.execute_plugins()

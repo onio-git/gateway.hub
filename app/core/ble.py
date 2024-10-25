@@ -45,7 +45,6 @@ class BLEManager:
         return
 
     def list_devices(self, plugin) -> None:
-        logging.info(f"plugin items {plugin.devices.items()}")
         for id, device in plugin.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
         if not plugin.devices:
