@@ -37,11 +37,11 @@ class BLEManager:
         results = await self.scanner.discover(timeout=timeout, return_adv=True)
         logging.info(f"Found {len(results)} devices.")
         for _, result in results.items():
-            logging.info(result)
+            logging.debug(result)
             if filter_func(result):
                 new_device = plugin.Device(result[0].address, result[0].name)
                 plugin.devices[result[0].address] = new_device
-
+        logging.info(plugin)
         self.list_devices(plugin)
         return
 
