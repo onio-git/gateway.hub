@@ -48,9 +48,10 @@ class philips_hue(PluginInterface):
         self.protocol = "BLE"
         self.devices = {}
         self.plugin_active = False
+        self.command = ""
 
     def execute(self, api: ApiBackend, command: str = '') -> None:
-        logging.info(f"Executing Philips Hue Plugin...: {command}")
+        self.command = command
         if self.plugin_active:
             return
         self.plugin_active = True
@@ -150,15 +151,15 @@ class philips_hue(PluginInterface):
                     # Perform operations
                     state = await self.read_light_state(client)
 
-                    # async def toggle_light(client, current_state):
-                    #     command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
-                    #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
-                    #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
-                    #
-                    # if state["light_is_on"]:
-                    #     await toggle_light(client, True)
-                    # else:
-                    #     await toggle_light(client, False)
+                    async def toggle_light(client, current_state):
+                        command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
+                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
+                        print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
+
+                    if self.command == "turn-on":
+                        await toggle_light(client, True)
+                    elif self.command == "turn-off":
+                        await toggle_light(client, False)
 
                     # await asyncio.sleep(5.0)
                     self.is_connected = False  # Reset after operations
