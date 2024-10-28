@@ -49,7 +49,7 @@ class philips_hue(PluginInterface):
         self.devices = {}
         self.plugin_active = False
 
-    def execute(self, api: ApiBackend) -> None:
+    def execute(self, api: ApiBackend, command: str = '') -> None:
         if self.plugin_active:
             return
         self.plugin_active = True
