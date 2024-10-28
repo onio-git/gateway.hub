@@ -72,7 +72,7 @@ class philips_hue(PluginInterface):
 
             # If not connected, attempt to connect and read
             data = await device.connect_and_read()
-            await device.update_attributes(system_command=self.command, meta_data=self.meta_data)
+            # await device.update_attributes(system_command=self.command, meta_data=self.meta_data)
             if not data:
                 logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
                 continue
@@ -169,20 +169,6 @@ class philips_hue(PluginInterface):
 
                 # Step 2: Connect and Read Data using Bleak
                 async with BleakClient(self.mac_address) as client:
-                    # for service in client.services:
-                    #     print(f"[Service] {service.uuid}: {service.description}")
-                    #     for char in service.characteristics:
-                    #         # print(f"  [Characteristic] {char.uuid}: {char.description}")
-                    #         try:
-                    #             print(f"  Characteristic UUID: {char.uuid}")
-                    #             print(f"  Properties: {char.properties}")
-                    #         #     if "read" in char.properties:
-                    #         #         value = await client.read_gatt_char(char.uuid)
-                    #         #         print(f"    Value: {value}")
-                    #
-                    #         except Exception as e:
-                    #             print(f"    Error reading {char.uuid}: {e}")
-
                     if not client.is_connected:
                         logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
                         return None
