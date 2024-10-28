@@ -217,7 +217,7 @@ def index():
     if current_ssid:
         rssi = run_command(['iwconfig', 'wlan0']).split('Signal level=')[1].split(' dBm')[0]
     # Check if ethernet is connected on the RPi
-    current_ethernet = "Connected" if "100 (connected)" in run_command(['nmcli', 'device', 'show', 'end0']) else "Disconnected"
+    current_ethernet = "Connected" if "100 (connected)" in run_command(['nmcli', 'device', 'show', 'eth0']) else "Disconnected"
     if not current_ssid:
         current_ssid = "No Wi-Fi"
     temperature = float(run_command(['vcgencmd', 'measure_temp']).split('=')[1].split('\'')[0])
@@ -252,7 +252,6 @@ def restart_services():
     logger.info("Restarting services requested by user.")
     subprocess.run(['systemctl', 'restart', 'SmarthubManager.service'])
     return 'Restarting services...'
-
 
 
 
