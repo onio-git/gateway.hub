@@ -83,7 +83,8 @@ Once you have successfully SSH'd into the Pi:
     sudo ./install.sh
     ```
 
-    Wait while this completes. If prompted about IP-table settings, press "yes".
+    Wait while this completes.
+    The Pi may ask you to accept modifications to IPv4 and IPv6 tables. Press "yes".
     The Pi will reboot at the end. Wait a moment, then SSH into the Pi again.
 
 ### 4. Configure the Hub
