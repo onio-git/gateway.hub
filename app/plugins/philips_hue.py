@@ -67,7 +67,7 @@ class philips_hue(PluginInterface):
             #         logging.info(f"Device {device.mac_address} is already connected.")
 
             # If not connected, attempt to connect and read
-            data = await device.connect_and_read()
+            data = await device.connect_and_read(self.command)
             if not data:
                 logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
                 continue
@@ -108,7 +108,7 @@ class philips_hue(PluginInterface):
             self.is_trusted = False
             self.is_connected = False
 
-        async def connect_and_read(self):
+        async def connect_and_read(self, system_command: str = ""):
             try:
                 logging.info(f"Connecting to {self.mac_address} - {self.device_name}...")
                 # Step 1: Pair and Trust the Device
@@ -156,9 +156,9 @@ class philips_hue(PluginInterface):
                         await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
                         print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
 
-                    if self.command == "turn-on":
+                    if system_command == "turn-on":
                         await toggle_light(client, True)
-                    elif self.command == "turn-off":
+                    elif system_command == "turn-off":
                         await toggle_light(client, False)
 
                     # await asyncio.sleep(5.0)
