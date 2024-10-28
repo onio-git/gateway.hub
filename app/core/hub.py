@@ -78,7 +78,7 @@ class Hub:
 
                 elif self.command == "turn-off":
                     logging.info("Turn off something")
-                    # self.execute_plugins()
+                    self.execute_plugins()
                     # pass
 
                 elif self.command == "turn-on":
