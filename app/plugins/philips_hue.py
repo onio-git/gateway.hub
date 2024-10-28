@@ -1,4 +1,6 @@
 import logging
+
+from click import command
 from core.plugin_interface import PluginInterface
 from core.backend import ApiBackend
 from bleak import BleakClient
@@ -151,16 +153,18 @@ class philips_hue(PluginInterface):
                     # Perform operations
                     state = await self.read_light_state(client)
 
-                    async def toggle_light(client, current_state):
-                        command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
-                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
-                        print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
+                    # async def toggle_light(client, current_state):
+                    #     command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
+                    #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
+                    #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
 
                     logging.info(f"System Command: {system_command}")
                     if system_command == "turn-on":
-                        await toggle_light(client, True)
+                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x01')
+                        print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
                     elif system_command == "turn-off":
-                        await toggle_light(client, False)
+                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x00')
+                        print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
 
                     # await asyncio.sleep(5.0)
                     self.is_connected = False  # Reset after operations
