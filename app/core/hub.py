@@ -89,6 +89,7 @@ class Hub:
 
                 elif self.command == "execute-flow":
                     logging.info("Execute something")
+                    logging.info(self.meta_data)
                     self.execute_plugins()
 
                 elif self.command == "":
