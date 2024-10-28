@@ -68,7 +68,19 @@ sudo systemctl restart SmarthubServer.service
 # Edit hostname
 echo "Setting up hostname..."
 sudo bash -c 'echo "onio-hub" > /etc/hostname'
-sudo systemctl restart hostname
+# Edit hosts file:
+sudo bash -c 'echo -e 
+"127.0.0.1	localhost
+::1		localhost ip6-localhost ip6-loopback
+ff02::1		ip6-allnodes
+ff02::2		ip6-allrouters
+
+127.0.1.1		onio-hub"
+>> /etc/hosts'
+
+
+
+
 
 # Create quick commands
 echo "Creating quick commands..."
