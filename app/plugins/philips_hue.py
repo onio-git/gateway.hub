@@ -132,6 +132,7 @@ class philips_hue(PluginInterface):
                         characteristic_value = data_attribute.get("value", None)
                         logging.info(characteristic_uuid)
                         logging.info(characteristic_value)
+                        logging.info(characteristic_uuid and characteristic_value)
                         if characteristic_uuid and characteristic_value:
                             # if isinstance(characteristic_value, str):
                             #     byte_value = characteristic_value.encode('utf-8')
