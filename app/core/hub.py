@@ -1,5 +1,3 @@
-
-
 import time
 import threading
 import importlib
@@ -13,6 +11,7 @@ from core.ble import BLEManager
 from core.backend import ApiBackend
 from core.flow import Flow
 
+
 class Hub:
     def __init__(self, serial_no):
         self.config = ConfigSettings()
@@ -20,25 +19,24 @@ class Hub:
         self.plugins = []
 
         self.serial = serial_no
-        self.serial_hash = md5(self.serial.encode()).hexdigest() # Hash the serial number for security
-        
+        self.serial_hash = md5(self.serial.encode()).hexdigest()  # Hash the serial number for security
+
         self.api = ApiBackend()
         self.ble = BLEManager()
         self.flow = Flow()
-        
+
         self.command = ""
-        
 
         # Load plugins
         # Comment out the plugins you don't want to load
         # Will later be managed by API ()
         # self.load_plugin("null") # Sensor emulator plugin
-        self.load_plugin("philips_hue") # Philips hue experimental plugin
+        self.load_plugin("philips_hue")  # Philips hue experimental plugin
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
         # self.load_plugin("flic") # Flic plugin
 
     def startup(self):
-        
+
         # Disable this to avoid unnecessary geolocation requests and costs.
         # local_ap_list = self.wifi.scan_wifi_networks()
         # if local_ap_list is not None:
@@ -47,11 +45,10 @@ class Hub:
         #     else:
         #         logging.error("Failed to get location from Google API")
 
-            
-        if self.api.get_token(self.serial_hash): 
+        if self.api.get_token(self.serial_hash):
             logging.info("Successfully retrieved token from server")
 
-        if self.api.set_location(): 
+        if self.api.set_location():
             logging.info("Successfully updated hub location")
 
         if self.flow.set_flow(self.api.get_flow()):
@@ -59,7 +56,6 @@ class Hub:
 
         logging.info("Startup complete... Beginning main routine\n")
         return True
-    
 
     def loop(self, auto_collect, period=5):
 
@@ -67,7 +63,7 @@ class Hub:
         self.scan_for_devices()
 
         while True:
-            try:                
+            try:
                 if self.command == "rebooting":
                     logging.info("Rebooting...")
                     self.shutdown()
@@ -75,43 +71,47 @@ class Hub:
                 elif self.command == "scan_devices":
                     self.scan_for_devices()
 
-
                     if not self.api.post_scan_results(self.plugins):
                         logging.error("Failed to post scan results")
 
                     logging.info("Scan complete... Returning to main routine\n")
-                    
+
+                elif self.command == "turn-off":
+                    logging.debug("Turn off something")
+                    # self.execute_plugins()
+                    # pass
+
+                elif self.command == "turn-on":
+                    logging.debug("Turn on something")
+                    # self.execute_plugins()
+                    # pass
 
                 elif self.command == "":
                     # if auto_collect:
                     logging.debug("Automatically executing plugins")
                     self.execute_plugins()
                     pass
-                
+
                 self.command = ""
                 time.sleep(period)
                 self.command = self.api.ping_server(self.serial_hash)
-                
+
 
 
             except KeyboardInterrupt:
                 logging.warning("Keyboard Interrupt")
                 break
-        
+
         return
-            
-        
 
     def shutdown(self):
         logging.info("Shutting down...")
         subprocess.run(['sudo', 'reboot'])
         pass
 
-
     def display_devices(self):
         for plugin in self.plugin_manager.plugins:
             plugin.display_devices()
-
 
     def load_plugin(self, plugin_name):
         module = importlib.import_module(f"{self.plugin_dir}.{plugin_name}")
@@ -123,19 +123,17 @@ class Hub:
         self.plugins.append(plugin)
         logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
 
-
     def scan_for_devices(self):
         for plugin in self.plugins:
             if plugin.protocol == 'BLE':
                 asyncio.run(self.ble.scan_by_plugin(plugin, timeout=10))
-                
+
             elif plugin.protocol == 'WiFi':
                 pass
             elif plugin.protocol == 'Zigbee':
                 pass
             elif plugin.protocol == 'Zwave':
                 pass
-
 
     def execute_plugins(self):
         for plugin in self.plugins:
