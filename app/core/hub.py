@@ -77,12 +77,12 @@ class Hub:
                     logging.info("Scan complete... Returning to main routine\n")
 
                 elif self.command == "turn-off":
-                    logging.debug("Turn off something")
+                    logging.info("Turn off something")
                     # self.execute_plugins()
                     # pass
 
                 elif self.command == "turn-on":
-                    logging.debug("Turn on something")
+                    logging.info("Turn on something")
                     # self.execute_plugins()
                     # pass
 
