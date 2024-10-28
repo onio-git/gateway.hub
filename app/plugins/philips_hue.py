@@ -115,19 +115,6 @@ class philips_hue(PluginInterface):
 
         async def update_attributes(self, system_command: str = "", meta_data: dict = {}):
             async with BleakClient(self.mac_address) as client:
-                # for service in client.services:
-                #     print(f"[Service] {service.uuid}: {service.description}")
-                #     for char in service.characteristics:
-                #         # print(f"  [Characteristic] {char.uuid}: {char.description}")
-                #         try:
-                #             print(f"  Characteristic UUID: {char.uuid}")
-                #             print(f"  Properties: {char.properties}")
-                #         #     if "read" in char.properties:
-                #         #         value = await client.read_gatt_char(char.uuid)
-                #         #         print(f"    Value: {value}")
-                #
-                #         except Exception as e:
-                #             print(f"    Error reading {char.uuid}: {e}")
                 if not client.is_connected:
                     logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
                     return None
@@ -135,12 +122,10 @@ class philips_hue(PluginInterface):
                 self.is_connected = True
                 logging.info(f"Connected to {self.mac_address} - {self.device_name}")
 
-                # async def toggle_light(client, current_state):
-                #     command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
-                #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
-                #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
-
                 logging.info(f"System Command: {system_command}, meta_data: {meta_data}")
+                attributes = meta_data.get("attributes", {})
+                for data_attribute in attributes:
+                    logging.info(data_attribute)
                 # if system_command == "turn-on":
                 #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x01')
                 #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
