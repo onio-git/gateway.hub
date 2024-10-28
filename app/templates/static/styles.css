@@ -177,9 +177,8 @@ body {
 
 /* CSS Animation for blinking header */
 @keyframes blinkGreen {
-    0% { background-color: initial; }
-    20% { background-color: green; }
-    100% { background-color: initial; }
+    0% { background-color: #28a745; }
+    100% { background-color: #333; }
 }
 
 .header.blink {
@@ -190,8 +189,8 @@ body {
 .alert-box {
     display: none; /* Hidden by default */
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 30px;
+    right: 30px;
     background-color: #4CAF50; /* Green for success */
     color: white;
     padding: 15px;

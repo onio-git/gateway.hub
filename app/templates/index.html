@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <!-- Link to your CSS file -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="/home/juaa/Desktop/gateway.hub/app/templates/static/styles.css">
 </head>
 <body>
     <div id="alert-box" class="alert-box"></div>
@@ -183,44 +184,53 @@
         }
     }
 
-    function activate_hotspot() {
+    async function activate_hotspot() {
         // get response from the server
-        const response = fetch('/hotspot_mode')
-        .then(response => {
-            if (response.ok) {
-                alert_success('Hotspot activated');
-            } else {
-                alert_error('Failed to activate hotspot');
-            }
-        })
+        try {
+            const response = await fetch('/hotspot_mode')
+            .then(response => {
+                if (response.ok) {
+                    alert_success('Hotspot activated');
+                } else {
+                    alert_error('Failed to activate hotspot');
+                }
+            })
+        } catch (error) {
+            alert_error('Failed to activate hotspot');
+        }
     }
 
-    function hub_reboot() {
+    async function hub_reboot() {
         // get response from the server
-        const response = fetch('/reboot')
-        .then(response => {
-            if (response.ok) {
-                alert_success('Rebooting hub...');
-            } else {
-                alert_error('Failed to reboot hub');
-            }
-        })  
+        try {
+            const response = await fetch('/reboot')
+            .then(response => {
+                if (response.ok) {
+                    alert_success('Rebooting hub...');
+                } else {
+                    alert_error('Failed to reboot hub');
+                }
+            })
+        } catch (error) {
+            alert_error('Failed to reboot hub');
+        }
     }
 
     function refresh() {
         window.location.reload(); 
     }
 
-    function restart_services() {
-        // get response from the server
-        const response = fetch('/restart_services')
-        .then(response => {
+    async function restart_services() {
+        try {
+            const response = await fetch('/restart_services');
             if (response.ok) {
                 alert_success('Services restarted');
             } else {
                 alert_error('Failed to restart services');
             }
-        })
+        } catch (error) {
+            alert_error('Failed to restart services due to network error.');
+        }
     }
 
     function handleNetworkChange(selectedNetwork) {

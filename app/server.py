@@ -198,14 +198,14 @@ def captive_portal(path=''):
 def reboot():
     logger.info("Reboot requested by user.")
     subprocess.run(['sudo', 'hub_reboot'])
-    return 'Rebooting...'
+    return 'Rebooting...', 200
 
 
 @app.route('/hotspot_mode', methods=['GET', 'POST'])
 def hotspot_mode():
     logger.info("Hotspot mode requested by user.")
     subprocess.run(['sudo', 'hub_portal'])
-    return 'Hotspot mode activated...'
+    return 'Hotspot mode activated...', 200
 
 
 
@@ -232,6 +232,8 @@ def index():
         connection_status = "Connected"
     ip_address = run_command(['hostname', '-I'])
 
+    logger.info("Serving index page...")
+
     return render_template("index.html", 
                         serial_number=serial_number, 
                         networks=networks,
@@ -253,7 +255,7 @@ def index():
 def restart_services():
     logger.info("Restarting services requested by user.")
     subprocess.run(['systemctl', 'restart', 'SmarthubManager.service'])
-    return 'Restarting services...'
+    return 'Restarting services...' , 200
 
 
 
