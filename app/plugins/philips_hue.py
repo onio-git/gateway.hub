@@ -128,28 +128,16 @@ class philips_hue(PluginInterface):
                     for data_attribute in attributes:
                         characteristic_uuid = data_attribute.get("uuid", None)
                         characteristic_value = data_attribute.get("value", None)
+                        if characteristic_uuid and characteristic_value:
+                            if isinstance(characteristic_value, str):
+                                byte_value = characteristic_value.encode('utf-8')
+                            elif isinstance(characteristic_value, int):
+                                byte_value = bytes([characteristic_value])
 
-                        if isinstance(characteristic_value, str):
-                            byte_value = characteristic_value.encode('utf-8')
-                        elif isinstance(characteristic_value, int):
-                            byte_value = bytes([characteristic_value])
-
-                        logging.info(byte_value)
-                        # if characteristic_uuid and characteristic_value:
-                        #     try:
-                        #         await client.write_gatt_char(characteristic_uuid, characteristic_value)
-                        #     except Exception as e:
-                        #         logging.error(f"Failed to write characteristic: {e}")
-                        # await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x01')
-
-                # if system_command == "turn-on":
-                #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x01')
-                #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
-                # elif system_command == "turn-off":
-                #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x00')
-                #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
-
-                # await asyncio.sleep(5.0)
+                            try:
+                                await client.write_gatt_char(characteristic_uuid, byte_value)
+                            except Exception as e:
+                                logging.error(f"Failed to write characteristic: {e}")
 
         async def connect_and_read(self) -> dict:
             try:
