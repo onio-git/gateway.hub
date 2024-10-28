@@ -128,7 +128,7 @@ class philips_hue(PluginInterface):
                     for data_attribute in attributes:
                         characteristic_uuid = data_attribute.get("uuid", None)
                         characteristic_value = data_attribute.get("value", None)
-                        logging.info(bytes(characteristic_value))
+                        logging.info(bytearray(characteristic_value))
                         # if characteristic_uuid and characteristic_value:
                         #     try:
                         #         await client.write_gatt_char(characteristic_uuid, characteristic_value)
