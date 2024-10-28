@@ -61,7 +61,8 @@ def run_command(command) -> str:
 def scan_wifi_networks(min_signal_strength=-70) -> list:
     """Scans for available Wi-Fi networks and returns a list of unique networks with signal strength above the specified threshold."""
     try:
-        result = subprocess.run(['iwlist', 'wlan0', 'scan'], capture_output=True, text=True)
+        # Run the command with a timeout of 5 seconds
+        result = subprocess.run(['iwlist', 'wlan0', 'scan'], capture_output=True, text=True, timeout=5)
         networks = []
         ssid_set = set()
         cells = result.stdout.split('Cell ')
@@ -72,7 +73,7 @@ def scan_wifi_networks(min_signal_strength=-70) -> list:
                 if not essid_line:
                     continue
                 essid_line = essid_line[0]
-                essid = essid_line.split(':')[1].strip().strip('"')
+                essid = essid_line.split(':', 1)[1].strip().strip('"')
 
                 # Skip empty SSIDs
                 if not essid:
@@ -96,6 +97,9 @@ def scan_wifi_networks(min_signal_strength=-70) -> list:
         # Sort networks by signal strength descending
         networks.sort(key=lambda x: x[1], reverse=True)
         return networks
+    except subprocess.TimeoutExpired:
+        logger.error("Wi-Fi scan timed out after 5 seconds.")
+        return []
     except Exception as e:
         logger.error(f"Failed to scan Wi-Fi networks: {e}")
         return []
