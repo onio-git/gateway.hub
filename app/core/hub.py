@@ -83,7 +83,7 @@ class Hub:
 
                 elif self.command == "turn-on":
                     logging.info("Turn on something")
-                    # self.execute_plugins()
+                    self.execute_plugins()
                     # pass
 
                 elif self.command == "":
@@ -137,5 +137,5 @@ class Hub:
 
     def execute_plugins(self):
         for plugin in self.plugins:
-            thread = threading.Thread(target=plugin.execute, args=(self.api,))
+            thread = threading.Thread(target=plugin.execute, args=(self.api, self.command))
             thread.start()
