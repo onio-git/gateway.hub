@@ -50,6 +50,7 @@ class philips_hue(PluginInterface):
         self.plugin_active = False
 
     def execute(self, api: ApiBackend, command: str = '') -> None:
+        logging.info(f"Executing Philips Hue Plugin...: {command}")
         if self.plugin_active:
             return
         self.plugin_active = True
