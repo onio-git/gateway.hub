@@ -174,3 +174,49 @@ body {
 .status-good { color: #28a745; }
 .status-warning { color: #ffc107; }
 .status-danger { color: #dc3545; }
+
+/* CSS Animation for blinking header */
+@keyframes blinkGreen {
+    0% { background-color: initial; }
+    20% { background-color: green; }
+    100% { background-color: initial; }
+}
+
+.header.blink {
+    animation: blinkGreen 3s forwards;
+}
+
+/* Styles for the alert box */
+.alert-box {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #4CAF50; /* Green for success */
+    color: white;
+    padding: 15px;
+    border-radius: 4px;
+    z-index: 1000;
+    min-width: 250px;
+    text-align: center;
+}
+
+.alert-box.error {
+    background-color: #f44336; /* Red for errors */
+}
+
+.alert-box.show {
+    display: block;
+    /* Optional: Add fade-in and fade-out animations */
+    animation: fadeIn 0.5s, fadeOut 0.5s 4.5s forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}

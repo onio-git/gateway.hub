@@ -216,6 +216,8 @@ def index():
     rssi = 'N/A'
     if current_ssid:
         rssi = run_command(['iwconfig', 'wlan0']).split('Signal level=')[1].split(' dBm')[0]
+    else:
+        current_ssid = "No Wi-Fi"
     # Check if ethernet is connected on the RPi
     current_ethernet = "Connected" if "100 (connected)" in run_command(['nmcli', 'device', 'show', 'eth0']) else "Disconnected"
     if not current_ssid:
@@ -225,7 +227,7 @@ def index():
     memory_usage_output = run_command(['free', '-m']).split('\n')[1]
     memory_usage = round(int(memory_usage_output.split()[2]) / int(memory_usage_output.split()[1]) * 100, 0)
     system_time = run_command(['date'])
-    connection_status = run_command(['ping', '-c', '1', 'google.com'])
+    connection_status = run_command(['ping', '-I', 'wlan0', '1', 'google.com'])
     if connection_status:
         connection_status = "Connected"
     ip_address = run_command(['hostname', '-I'])
