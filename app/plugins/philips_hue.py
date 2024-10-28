@@ -156,6 +156,7 @@ class philips_hue(PluginInterface):
                         await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
                         print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
 
+                    logging.info(f"System Command: {system_command}")
                     if system_command == "turn-on":
                         await toggle_light(client, True)
                     elif system_command == "turn-off":
