@@ -84,8 +84,8 @@ class Hub:
 
                 elif self.command == "":
                     # if auto_collect:
-                    # logging.debug("Automatically executing plugins")
-                    # self.execute_plugins()
+                    logging.debug("Automatically executing plugins")
+                    self.execute_plugins()
                     pass
                 
                 self.command = ""
