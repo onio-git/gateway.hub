@@ -26,6 +26,7 @@ class Hub:
         self.flow = Flow()
 
         self.command = ""
+        self.meta_data = ""
 
         # Load plugins
         # Comment out the plugins you don't want to load
@@ -76,15 +77,19 @@ class Hub:
 
                     logging.info("Scan complete... Returning to main routine\n")
 
-                elif self.command == "turn-off":
-                    logging.info("Turn off something")
-                    self.execute_plugins()
-                    # pass
+                # elif self.command == "turn-off":
+                #     logging.info("Turn off something")
+                #     self.execute_plugins()
+                #     # pass
+                #
+                # elif self.command == "turn-on":
+                #     logging.info("Turn on something")
+                #     self.execute_plugins()
+                #     # pass
 
-                elif self.command == "turn-on":
-                    logging.info("Turn on something")
+                elif self.command == "execute-flow":
+                    logging.info("Execute something")
                     self.execute_plugins()
-                    # pass
 
                 elif self.command == "":
                     # if auto_collect:
@@ -94,7 +99,7 @@ class Hub:
 
                 self.command = ""
                 time.sleep(period)
-                self.command = self.api.ping_server(self.serial_hash)
+                [self.command, self.meta_data] = self.api.ping_server(self.serial_hash)
 
 
 
