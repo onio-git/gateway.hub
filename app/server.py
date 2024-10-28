@@ -216,24 +216,32 @@ def hotspot_mode():
 @app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
 def index(path = ''):
     logger.info("Request received for index page.")
-    
+
+    logger.info("Scanning Wi-Fi networks...")
     networks = scan_wifi_networks()
+
+    logger.info("Getting ssid...")
     current_ssid = run_command(['iwgetid', '-r'])
     rssi = 'N/A'
     if current_ssid:
         rssi = run_command(['iwconfig', 'wlan0']).split('Signal level=')[1].split(' dBm')[0]
     else:
         current_ssid = "No Wi-Fi"
-    # Check if ethernet is connected on the RPi
+    
+    logger.info("Getting ethernet status...")
     current_ethernet = "Connected" if "100 (connected)" in run_command(['nmcli', 'device', 'show', 'eth0']) else "Disconnected"
     if not current_ssid:
         current_ssid = "No Wi-Fi"
+
+    logger.info("Getting system stats...")
     temperature = float(run_command(['vcgencmd', 'measure_temp']).split('=')[1].split('\'')[0])
     system_voltage = run_command(['vcgencmd', 'measure_volts', 'core']).split('=')[1].split('V')[0]
     memory_usage_output = run_command(['free', '-m']).split('\n')[1]
     memory_usage = round(int(memory_usage_output.split()[2]) / int(memory_usage_output.split()[1]) * 100, 0)
     system_time = run_command(['date'])
-    connection_status = run_command(['ping', '-I', 'wlan0', '1', 'google.com'])
+
+    logger.info("Getting network status...")
+    connection_status = run_command(['ping', '-I', 'wlan0', '-c', '1', 'google.com'])
     if connection_status:
         connection_status = "Connected"
     ip_address = run_command(['hostname', '-I'])
