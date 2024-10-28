@@ -94,14 +94,12 @@ sudo chmod +x /usr/local/bin/hub_logs
 echo "Setting up hostname..."
 sudo bash -c 'echo "onio-hub" > /etc/hostname'
 # Edit hosts file:
-sudo bash -c 'echo -e 
-"127.0.0.1	localhost
-::1		localhost ip6-localhost ip6-loopback
-ff02::1		ip6-allnodes
-ff02::2		ip6-allrouters
+sudo bash -c 'echo -e "127.0.0.1\tlocalhost
+::1\t\tlocalhost ip6-localhost ip6-loopback
+ff02::1\t\tip6-allnodes
+ff02::2\t\tip6-allrouters
 
-127.0.1.1		onio-hub"
->> /etc/hosts'
+127.0.1.1\t\tonio-hub" > /etc/hosts'
 
 # Reboot the system to apply changes
 echo ""
