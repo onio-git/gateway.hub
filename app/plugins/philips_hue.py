@@ -71,14 +71,14 @@ class philips_hue(PluginInterface):
             #         logging.info(f"Device {device.mac_address} is already connected.")
 
             # If not connected, attempt to connect and read
-            data = await device.connect_and_read()
+            # data = await device.connect_and_read()
             await device.update_attributes(system_command=self.command, meta_data=self.meta_data)
-            if not data:
-                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
-                continue
-
-            else:
-                logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
+            # if not data:
+            #     logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+            #     continue
+            #
+            # else:
+            #     logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():
@@ -128,14 +128,15 @@ class philips_hue(PluginInterface):
                     for data_attribute in attributes:
                         characteristic_uuid = data_attribute.get("uuid", None)
                         characteristic_value = data_attribute.get("value", None)
+                        logging.info(characteristic_uuid)
+                        logging.info(characteristic_value)
                         if characteristic_uuid and characteristic_value:
                             if isinstance(characteristic_value, str):
                                 byte_value = characteristic_value.encode('utf-8')
                             elif isinstance(characteristic_value, int):
                                 byte_value = bytes([characteristic_value])
-
                             try:
-                                await client.write_gatt_char(characteristic_uuid, byte_value)
+                                await client.write_gatt_char(LIGHT_CHARACTERISTIC, byte_value, response=True)
                             except Exception as e:
                                 logging.error(f"Failed to write characteristic: {e}")
 
