@@ -89,7 +89,6 @@ class Hub:
 
                 elif self.command == "execute-flow":
                     logging.info("Execute something")
-                    logging.info(self.meta_data)
                     self.execute_plugins()
 
                 elif self.command == "":
@@ -143,5 +142,5 @@ class Hub:
 
     def execute_plugins(self):
         for plugin in self.plugins:
-            thread = threading.Thread(target=plugin.execute, args=(self.api, self.command))
+            thread = threading.Thread(target=plugin.execute, args=(self.api, self.command, self.meta_data))
             thread.start()

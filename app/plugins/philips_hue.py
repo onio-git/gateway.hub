@@ -51,9 +51,11 @@ class philips_hue(PluginInterface):
         self.devices = {}
         self.plugin_active = False
         self.command = ""
+        self.meta_data = {}
 
-    def execute(self, api: ApiBackend, command: str = '') -> None:
+    def execute(self, api: ApiBackend, command: str = '', meta_data: dict = {}) -> None:
         self.command = command
+        self.meta_data = meta_data
         if self.plugin_active:
             return
         self.plugin_active = True
@@ -69,7 +71,8 @@ class philips_hue(PluginInterface):
             #         logging.info(f"Device {device.mac_address} is already connected.")
 
             # If not connected, attempt to connect and read
-            data = await device.connect_and_read(system_command=self.command)
+            data = await device.connect_and_read()
+            await device.update_attributes(system_command=self.command, meta_data=self.meta_data)
             if not data:
                 logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
                 continue
@@ -110,7 +113,44 @@ class philips_hue(PluginInterface):
             self.is_trusted = False
             self.is_connected = False
 
-        async def connect_and_read(self, system_command: str = ""):
+        async def update_attributes(self, system_command: str = "", meta_data: dict = {}):
+            async with BleakClient(self.mac_address) as client:
+                # for service in client.services:
+                #     print(f"[Service] {service.uuid}: {service.description}")
+                #     for char in service.characteristics:
+                #         # print(f"  [Characteristic] {char.uuid}: {char.description}")
+                #         try:
+                #             print(f"  Characteristic UUID: {char.uuid}")
+                #             print(f"  Properties: {char.properties}")
+                #         #     if "read" in char.properties:
+                #         #         value = await client.read_gatt_char(char.uuid)
+                #         #         print(f"    Value: {value}")
+                #
+                #         except Exception as e:
+                #             print(f"    Error reading {char.uuid}: {e}")
+                if not client.is_connected:
+                    logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
+                    return None
+
+                self.is_connected = True
+                logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+
+                # async def toggle_light(client, current_state):
+                #     command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
+                #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
+                #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
+
+                logging.info(f"System Command: {system_command}")
+                # if system_command == "turn-on":
+                #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x01')
+                #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
+                # elif system_command == "turn-off":
+                #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x00')
+                #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
+
+                # await asyncio.sleep(5.0)
+
+        async def connect_and_read(self) -> dict:
             try:
                 logging.info(f"Connecting to {self.mac_address} - {self.device_name}...")
                 # Step 1: Pair and Trust the Device
@@ -152,20 +192,6 @@ class philips_hue(PluginInterface):
 
                     # Perform operations
                     state = await self.read_light_state(client)
-
-                    # async def toggle_light(client, current_state):
-                    #     command = b'\x00' if current_state else b'\x01'  # Nếu đang bật thì tắt và ngược lại
-                    #     await client.write_gatt_char(LIGHT_CHARACTERISTIC, command)
-                    #     print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
-
-                    logging.info(f"System Command: {system_command}")
-                    if system_command == "turn-on":
-                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x01')
-                        print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
-                    elif system_command == "turn-off":
-                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x00')
-                        print("Đèn đã được bật" if command == b'\x01' else "Đèn đã được tắt")
-
                     # await asyncio.sleep(5.0)
                     self.is_connected = False  # Reset after operations
                     return state
