@@ -133,10 +133,10 @@ class philips_hue(PluginInterface):
                         logging.info(characteristic_uuid)
                         logging.info(characteristic_value)
                         if characteristic_uuid and characteristic_value is not None:
-                            # if isinstance(characteristic_value, str):
-                            #     byte_value = characteristic_value.encode('utf-8')
-                            # elif isinstance(characteristic_value, int):
-                            #     byte_value = bytes([characteristic_value])
+                            if isinstance(characteristic_value, str):
+                                byte_value = characteristic_value.encode('utf-8')
+                            elif isinstance(characteristic_value, int):
+                                byte_value = bytes([characteristic_value])
                             try:
                                 await client.write_gatt_char(LIGHT_CHARACTERISTIC, byte_value, response=True)
                             except Exception as e:
