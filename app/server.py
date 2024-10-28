@@ -213,8 +213,10 @@ def hotspot_mode():
 
 
 
-@app.route('/')
-def index():
+@app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
+def index(path = ''):
+    logger.info("Request received for index page.")
+    
     networks = scan_wifi_networks()
     current_ssid = run_command(['iwgetid', '-r'])
     rssi = 'N/A'
