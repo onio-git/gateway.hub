@@ -123,7 +123,7 @@ class philips_hue(PluginInterface):
                 logging.info(f"Connected to {self.mac_address} - {self.device_name}")
 
                 logging.info(f"System Command: {system_command}, meta_data: {meta_data}")
-                await client.write_gatt_char(LIGHT_CHARACTERISTIC, b'\x00', response=True)
+                await client.write_gatt_char(LIGHT_CHARACTERISTIC, bytes[0], response=True)
                 # if isinstance(meta_data, dict):
                 #     attributes = meta_data.get("attributes", {})
                 #     for data_attribute in attributes:
