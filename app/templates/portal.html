@@ -1,31 +1,67 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Smarthub</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONiO Smarthub</title>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/vnd.microsoft.icon">
     <!-- Link to your CSS file -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
-    <!-- Link to your favicon -->
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/vnd.microsoft.icon">
 </head>
 <body>
-    <div class="container">
-        <h1>ONiO Smarthub</h1>
-        <h2 for="serial_number">Serial number: {{ serial_number }}</h2>
-        <h2>Connect to Wi-Fi</h2>
-        <form method="post">
-            <label for="ssid">Select Network:</label>
-            <select name="ssid" id="ssid" required>
-                {% for ssid, signal_strength in networks %}
-                    <option value="{{ ssid }}">{{ ssid }} ({{ signal_strength }} dBm)</option>
-                {% endfor %}
-            </select>
-            <label for="password">Password:</label>
-            <input type="password" name="password" id="password" placeholder="Enter Wi-Fi password">
-            <div class="button-group">
-                <button type="submit" formaction="/cancel">Cancel</button>
-                <input type="submit" value="Connect">
+    <div class="dashboard">
+        <header class="header">
+            <h1>ONiO Smarthub</h1>
+            <h2>Serial number: {{ serial_number }}</h2>
+        </header>
+        <section class="quick-actions">
+            <button class="action-button" onclick="refresh()">
+                <i class="fas fa-sync"></i>
+                Refresh
+            </button>
+            <button class="action-button danger" onclick="hub_reboot()">
+                <i class="fas fa-redo"></i>
+                Reboot Hub
+            </button>
+        </section>
+
+        <section class="cards-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-wifi"></i> WiFi Configuration</h2>
+                </div>
+                <div class="card-content">
+                    <form method="post">
+                        <div class="form-group">
+                            <label for="ssid">Select Network:</label>
+                            <select name="ssid" id="ssid" required>
+                                {% for ssid, signal_strength in networks %}
+                                    <option value="{{ ssid }}">{{ ssid }} ({{ signal_strength }} dBm)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password:</label>
+                            <input type="password" name="password" id="password" placeholder="Enter Wi-Fi password">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" formaction="/cancel">Cancel</button>
+                            <input type="submit" value="Connect">
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
+        </section>
+        
     </div>
 </body>
+<script>
+    function hub_reboot() {
+        fetch('/reboot')  
+    }
+
+    function refresh() {
+        window.location.reload(); 
+    }
+</script>
 </html>

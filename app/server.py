@@ -173,7 +173,6 @@ def cancel():
 
 @app.route('/captive_portal', defaults={'path': ''}, methods=['GET', 'POST'])
 def captive_portal(path=''):
-    logger.info("Serving captive portal page...")
     networks = scan_wifi_networks()
     if request.method == 'POST':
         ssid = request.form.get('ssid')
@@ -190,6 +189,7 @@ def captive_portal(path=''):
         threading.Thread(target=connect_to_wifi, args=(ssid, password)).start()
         return 'Attempting to connect to network... Please wait.'
     else:
+        logger.info("Serving captive portal page...")
         return render_template("portal.html", networks=networks, serial_number=serial_number)
     
 
@@ -211,27 +211,47 @@ def hotspot_mode():
 
 @app.route('/')
 def index():
+    networks = scan_wifi_networks()
     current_ssid = run_command(['iwgetid', '-r'])
+    rssi = 'N/A'
+    if current_ssid:
+        rssi = run_command(['iwconfig', 'wlan0']).split('Signal level=')[1].split(' dBm')[0]
+    # Check if ethernet is connected on the RPi
+    current_ethernet = "Connected" if "100 (connected)" in run_command(['nmcli', 'device', 'show', 'end0']) else "Disconnected"
     if not current_ssid:
-        current_ssid = "No Wi-Fi connection"
-    temperature = run_command(['vcgencmd', 'measure_temp']).split('=')[1].split('\'')[0]
+        current_ssid = "No Wi-Fi"
+    temperature = float(run_command(['vcgencmd', 'measure_temp']).split('=')[1].split('\'')[0])
     system_voltage = run_command(['vcgencmd', 'measure_volts', 'core']).split('=')[1].split('V')[0]
     memory_usage_output = run_command(['free', '-m']).split('\n')[1]
-    memory_usage = memory_usage_output.split()[2] + ' / ' + memory_usage_output.split()[1]
+    memory_usage = round(int(memory_usage_output.split()[2]) / int(memory_usage_output.split()[1]) * 100, 0)
     system_time = run_command(['date'])
+    connection_status = run_command(['ping', '-c', '1', 'google.com'])
+    if connection_status:
+        connection_status = "Connected"
+    ip_address = run_command(['hostname', '-I'])
 
     return render_template("index.html", 
                         serial_number=serial_number, 
+                        networks=networks,
                         current_ssid=current_ssid, 
                         temperature=temperature, 
                         system_voltage=system_voltage, 
                         memory_usage=memory_usage, 
                         hardware_model=hardware_model, 
                         software_version=software_version,
-                        system_time=system_time)
+                        system_time=system_time,
+                        current_ethernet=current_ethernet,
+                        connection_status=connection_status,
+                        ip_address=ip_address,
+                        signal_strength=rssi
+                        )
 
 
-
+@app.route('/restart_services', methods=['GET', 'POST'])
+def restart_services():
+    logger.info("Restarting services requested by user.")
+    subprocess.run(['systemctl', 'restart', 'SmarthubManager.service'])
+    return 'Restarting services...'
 
 
 
