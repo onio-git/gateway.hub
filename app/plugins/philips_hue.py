@@ -123,7 +123,9 @@ class philips_hue(PluginInterface):
                 logging.info(f"Connected to {self.mac_address} - {self.device_name}")
 
                 logging.info(f"System Command: {system_command}, meta_data: {meta_data}")
-                # attributes = meta_data.get("attributes", {})
+                if meta_data != "":
+                    attributes = meta_data.get("attributes", {})
+                    logging.info(attributes)
                 # for data_attribute in attributes:
                 #     logging.info(data_attribute)
                 # if system_command == "turn-on":
