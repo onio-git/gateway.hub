@@ -11,6 +11,8 @@ class ApiBackend():
         self.api_token = ""
         self.refresh_token = ""
         self.location = {}
+        self.command = ""
+        self.meta_data = {}
         pass
 
     def get_headers(self, include_auth_token=False) -> dict:
@@ -104,9 +106,10 @@ class ApiBackend():
 
         if response_data.get('statusCode') == 200:
             self.command = response_data['data']['command']
+            self.meta_data = response_data['data']['meta_data']
             if self.command != "":
                 logging.info(f"Received command: {self.command}")
-            return self.command, {}
+            return self.command, self.meta_data
         else:
             logging.error(f"Failed to ping server: {response_data.get('statusCode')}")
             logging.debug(json_data)
