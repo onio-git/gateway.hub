@@ -19,6 +19,7 @@ class Hub:
         self.plugins = []
 
         self.serial = serial_no
+        logging.info("Serial number: " + self.serial)
         self.serial_hash = md5(self.serial.encode()).hexdigest()  # Hash the serial number for security
 
         self.api = ApiBackend()
