@@ -19,7 +19,6 @@ class Hub:
         self.plugins = []
 
         self.serial = serial_no
-        logging.info("Serial number: " + self.serial)
         self.serial_hash = md5(self.serial.encode()).hexdigest()  # Hash the serial number for security
 
         self.api = ApiBackend()
@@ -101,6 +100,7 @@ class Hub:
                 self.command = ""
                 time.sleep(period)
                 logging.info(f"Pinging server...: {self.serial_hash}")
+                logging.info("Serial number: " + self.serial)
                 [self.command, self.meta_data] = self.api.ping_server(self.serial_hash)
 
 
