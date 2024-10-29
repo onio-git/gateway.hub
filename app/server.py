@@ -61,7 +61,8 @@ def run_command(command) -> str:
 def scan_wifi_networks(min_signal_strength=-70) -> list:
     """Scans for available Wi-Fi networks and returns a list of unique networks with signal strength above the specified threshold."""
     try:
-        result = subprocess.run(['iwlist', 'wlan0', 'scan'], capture_output=True, text=True)
+        # Run the command with a timeout of 5 seconds
+        result = subprocess.run(['iwlist', 'wlan0', 'scan'], capture_output=True, text=True, timeout=5)
         networks = []
         ssid_set = set()
         cells = result.stdout.split('Cell ')
@@ -72,7 +73,7 @@ def scan_wifi_networks(min_signal_strength=-70) -> list:
                 if not essid_line:
                     continue
                 essid_line = essid_line[0]
-                essid = essid_line.split(':')[1].strip().strip('"')
+                essid = essid_line.split(':', 1)[1].strip().strip('"')
 
                 # Skip empty SSIDs
                 if not essid:
@@ -96,6 +97,9 @@ def scan_wifi_networks(min_signal_strength=-70) -> list:
         # Sort networks by signal strength descending
         networks.sort(key=lambda x: x[1], reverse=True)
         return networks
+    except subprocess.TimeoutExpired:
+        logger.error("Wi-Fi scan timed out after 5 seconds.")
+        return []
     except Exception as e:
         logger.error(f"Failed to scan Wi-Fi networks: {e}")
         return []
@@ -173,7 +177,6 @@ def cancel():
 
 @app.route('/captive_portal', defaults={'path': ''}, methods=['GET', 'POST'])
 def captive_portal(path=''):
-    logger.info("Serving captive portal page...")
     networks = scan_wifi_networks()
     if request.method == 'POST':
         ssid = request.form.get('ssid')
@@ -190,6 +193,7 @@ def captive_portal(path=''):
         threading.Thread(target=connect_to_wifi, args=(ssid, password)).start()
         return 'Attempting to connect to network... Please wait.'
     else:
+        logger.info("Serving captive portal page...")
         return render_template("portal.html", networks=networks, serial_number=serial_number)
     
 
@@ -198,41 +202,74 @@ def captive_portal(path=''):
 def reboot():
     logger.info("Reboot requested by user.")
     subprocess.run(['sudo', 'hub_reboot'])
-    return 'Rebooting...'
+    return 'Rebooting...', 200
 
 
 @app.route('/hotspot_mode', methods=['GET', 'POST'])
 def hotspot_mode():
     logger.info("Hotspot mode requested by user.")
     subprocess.run(['sudo', 'hub_portal'])
-    return 'Hotspot mode activated...'
+    return 'Hotspot mode activated...', 200
 
 
 
-@app.route('/')
-def index():
+@app.route('/', defaults={'path': ''}, methods=['GET', 'POST'])
+def index(path = ''):
+    logger.info("Request received for index page.")
+
+    logger.info("Scanning Wi-Fi networks...")
+    networks = scan_wifi_networks()
+
+    logger.info("Getting ssid...")
     current_ssid = run_command(['iwgetid', '-r'])
+    rssi = 'N/A'
+    if current_ssid:
+        rssi = run_command(['iwconfig', 'wlan0']).split('Signal level=')[1].split(' dBm')[0]
+    else:
+        current_ssid = "No Wi-Fi"
+    
+    logger.info("Getting ethernet status...")
+    current_ethernet = "Connected" if "100 (connected)" in run_command(['nmcli', 'device', 'show', 'eth0']) else "Disconnected"
     if not current_ssid:
-        current_ssid = "No Wi-Fi connection"
-    temperature = run_command(['vcgencmd', 'measure_temp']).split('=')[1].split('\'')[0]
+        current_ssid = "No Wi-Fi"
+
+    logger.info("Getting system stats...")
+    temperature = float(run_command(['vcgencmd', 'measure_temp']).split('=')[1].split('\'')[0])
     system_voltage = run_command(['vcgencmd', 'measure_volts', 'core']).split('=')[1].split('V')[0]
     memory_usage_output = run_command(['free', '-m']).split('\n')[1]
-    memory_usage = memory_usage_output.split()[2] + ' / ' + memory_usage_output.split()[1]
+    memory_usage = round(int(memory_usage_output.split()[2]) / int(memory_usage_output.split()[1]) * 100, 0)
     system_time = run_command(['date'])
+
+    logger.info("Getting network status...")
+    connection_status = run_command(['ping', '-I', 'wlan0', '-c', '1', 'google.com'])
+    if connection_status:
+        connection_status = "Connected"
+    ip_address = run_command(['hostname', '-I'])
+
+    logger.info("Serving index page...")
 
     return render_template("index.html", 
                         serial_number=serial_number, 
+                        networks=networks,
                         current_ssid=current_ssid, 
                         temperature=temperature, 
                         system_voltage=system_voltage, 
                         memory_usage=memory_usage, 
                         hardware_model=hardware_model, 
                         software_version=software_version,
-                        system_time=system_time)
+                        system_time=system_time,
+                        current_ethernet=current_ethernet,
+                        connection_status=connection_status,
+                        ip_address=ip_address,
+                        signal_strength=rssi
+                        )
 
 
-
-
+@app.route('/restart_services', methods=['GET', 'POST'])
+def restart_services():
+    logger.info("Restarting services requested by user.")
+    subprocess.run(['systemctl', 'restart', 'SmarthubManager.service'])
+    return 'Restarting services...' , 200
 
 
 

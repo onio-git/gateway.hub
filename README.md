@@ -83,34 +83,10 @@ Once you have successfully SSH'd into the Pi:
     sudo ./install.sh
     ```
 
-    Wait while this completes. If prompted about IP-table settings, press "yes".
-    The Pi will reboot at the end. Wait a moment, then SSH into the Pi again.
+    Wait while this completes.
+    The Pi may ask you to accept modifications to IPv4 and IPv6 tables. Press "yes".
 
-### 4. Configure the Hub
-
-The hub should now be active as a background service, but without a configured serial number (until we can use HWID, this must be configured manually).
-
-14. **Check that the hub service is running**:
-
-    ```bash
-    sudo systemctl status SmarthubManager.service
-    ```
-
-15. **Configure the serial number**:
-
-    ```bash
-    hub_config
-    ```
-
-16. **Enter your serial number** in the indicated spot. Then save (`Ctrl+S`) and exit (`Ctrl+X`).
-
-17. **Reboot with the new configuration**:
-
-    ```bash
-    hub_reboot
-    ```
-
-18. Wait a moment and SSH into the Pi again. **Check that the service is running**:
+14. Wait a moment and SSH into the Pi again. **Check that the service is running**:
 
     ```bash
     sudo systemctl status SmarthubManager.service
@@ -118,11 +94,15 @@ The hub should now be active as a background service, but without a configured s
 
 Now the hub should authenticate and respond to scan commands if the serial number is properly registered in the backend. The hub runs emulators by default. Add the devices by scanning and adding the results in the frontend.
 
+15. **Check the local admin-server**
+    If the hub is connected to ethernet, the admin-server should be vissible from any browser on the LAN.
+    Go to "onio-hub.local" to see it.
+
 ---
 
 ## Enabling Wi-Fi on Your Hub
 
-1. **SSH into the hub** and use the captive portal feature:
+1. **SSH into the hub** and use the captive portal feature from the hub CLI or use the LAN admin-server:
 
    ```bash
    hub_portal

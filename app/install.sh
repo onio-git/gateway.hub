@@ -65,10 +65,11 @@ sudo systemctl daemon-reload
 sudo systemctl enable SmarthubServer.service
 sudo systemctl restart SmarthubServer.service
 
-# Edit hostname
-echo "Setting up hostname..."
-sudo bash -c 'echo "onio-hub" > /etc/hostname'
-sudo systemctl restart hostname
+
+
+
+
+
 
 # Create quick commands
 echo "Creating quick commands..."
@@ -88,6 +89,17 @@ sudo chmod +x /usr/local/bin/hub_reboot
 # 4. hub_logs
 sudo bash -c 'echo -e "#!/bin/bash\nsudo journalctl -u SmarthubManager.service -f" > /usr/local/bin/hub_logs'
 sudo chmod +x /usr/local/bin/hub_logs
+
+# Edit hostname
+echo "Setting up hostname..."
+sudo bash -c 'echo "onio-hub" > /etc/hostname'
+# Edit hosts file:
+sudo bash -c 'echo -e "127.0.0.1\tlocalhost
+::1\t\tlocalhost ip6-localhost ip6-loopback
+ff02::1\t\tip6-allnodes
+ff02::2\t\tip6-allrouters
+
+127.0.1.1\t\tonio-hub" > /etc/hosts'
 
 # Reboot the system to apply changes
 echo ""

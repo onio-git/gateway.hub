@@ -1,112 +1,177 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Smarthub</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
-    <link rel="stylesheet" href="/home/juaa/Desktop/gateway.hub/app/templates/static/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ONiO Smarthub</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/vnd.microsoft.icon">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <!-- Link to your CSS file -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-
 <body>
-    <header>
-        <h1>ONiO Smart hub</h1>
+    <div id="alert-box" class="alert-box"></div>
+    <div class="dashboard">
+        <header class="header">
+            <h1>ONiO Smarthub</h1>
+            <h2>Serial number: {{ serial_number }}</h2>
+        </header>
         
-    </header>
+        <button class="action-button register" onclick="openInBrowser('https://uat-onio-flow.mpire.asia/smarthub/register')">
+            <i class="fas fa-plus"></i>
+            Register Smarthub online
+        </button>
 
-    <div class="main">
+        <section class="quick-actions">
+            <button class="action-button" onclick="refresh()">
+                <i class="fas fa-sync"></i>
+                Refresh
+            </button>
+            <button class="action-button" onclick="restart_services()">
+                <i class="fas fa-redo"></i>
+                Restart Services
+            </button>
+            <button class="action-button" onclick="activate_hotspot()">
+                <i class="fas fa-wifi"></i>
+                Activate Hotspot
+            </button>
+            <button class="action-button danger" onclick="hub_reboot()">
+                <i class="fas fa-power-off"></i>
+                Reboot Hub
+            </button>
+        </section>
 
-        <div class="card">
-            <h2>Quick Controls</h2>
-            <div class="card-content">
-                <button onclick="activate_hotspot()">Hotspot mode</button>
-                <button onclick="hub_reboot()">Reboot</button>
-            </div>
-            <div class="card-footnote">
+        <section class="cards-grid">
 
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>Wi-Fi</h2>
-            <div class="card-content">
-                Currently connected: {{ current_ssid }}
-                <a href="/captive_portal">Change network</a>
-            </div>
-            <div class="card-footnote">
-
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>Registration</h2>
-            <div class="card-content">
-                 <form>
-                    <label for="serial_number">Serial number:</label>
-                    <div id="copy_field">
-                        <input type="text" id="serial_number" value="{{ serial_number }}" readonly>
-                        <button class="copy-button" onclick="copyToClipboard()">Copy</button>
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-server"></i> System Status</h2>
+                </div>
+                <div class="card-content">
+                    <div class="status-item">
+                        <span>Hardware:</span>
+                        <span class="status-neutral">{{ hardware_model }}</span>
                     </div>
-                    <h3>Register your smarthub here: <a href="#" onclick="openInBrowser('https://uat-onio-flow.mpire.asia/smarthub/register')">Smarthub Home Page</a></h3>
-                </form>
+                    <div class="status-item">
+                        <span>Software:</span>
+                        <span class="status-neutral">v. {{ software_version }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Memory Usage</span>
+                        <span class="status-{% if memory_usage < 80 %}good{% else %}warning{% endif %}">{{ memory_usage }}%</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Power</span>
+                        <span class="status-good">{{ system_voltage }}V</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Temperature</span>
+                        <span class="status-{% if temperature < 80 %}good{% elif temperature < 85 %}warning{% else %}danger{% endif %}">{{ temperature }}°C</span>
+                    </div>
+                    <div class="status-item">
+                        <span>System time</span>
+                        <span class="status-neutral">{{ system_time }}</span>
+                    </div>
+                </div>
             </div>
-            <div class="card-footnote">
 
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-network-wired"></i> Network Status</h2>
+                </div>
+                <div class="card-content">
+                    <div class="status-item">
+                        <span>Ethernet</span>
+                        <span class="status-{% if current_ethernet == 'Connected' %}good{% else %}warning{% endif %}">{{current_ethernet}}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Current Wi-Fi</span>
+                        <span class="status-{% if connection_status == 'Connected' %}good{% else %}warning{% endif %}">{{ current_ssid }} ({{connection_status}})</span>
+                    </div>
+                    <div class="status-item">
+                        <span>IP Address</span>
+                        <span>{{ ip_address }}</span>
+                    </div>
+                    <div class="status-item">
+                        <span>Signal Strength</span>
+                        <span class="status-good">{{ signal_strength }} dBm</span>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="card">
-            <h2>Hub Status</h2>
-            <div class="card-content">
-                <table>
-                    <!-- hardware -->
-                    <tr>
-                        <td>Hardware model:</td>
-                        <td>{{ hardware_model }}</td>
-                    </tr>
-                    <!-- software -->
-                    <tr>
-                        <td>Software version:</td>
-                        <td>{{ software_version }}</td>
-                    </tr>
-                    <!-- system time -->
-                    <tr>
-                        <td>System time:</td>
-                        <td>{{ system_time }}</td>
-                    </tr>
-                    <!-- temperature -->
-                    <tr>
-                        <td>Temperature:</td>
-                        <td>{{ temperature }} °C</td>
-                    </tr>
-                    <!-- cpu -->
-                    <tr>
-                        <td>Power:</td>
-                        <td>{{ system_voltage }}V</td>
-                    </tr>
-                    <!-- memory -->
-                    <tr>
-                        <td>Memory usage:</td>
-                        <td>{{ memory_usage }} MB</td>
-                    </tr>
-                </table>
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-wifi"></i> WiFi Configuration</h2>
+                </div>
+                <div class="card-content">
+                    <form method="post" action="/captive_portal">
+                        <div class="form-group">
+                            <label for="ssid">Select Network:</label>
+                            <select name="ssid" id="ssid" required onchange="handleNetworkChange(this.value)">
+                                {% for ssid, signal_strength in networks %}
+                                    <option value="{{ ssid }}" {% if ssid == current_ssid %}selected{% endif %}>
+                                        {{ ssid }} ({{ signal_strength }} dBm)
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password:</label>
+                            <input type="password" 
+                                name="password" 
+                                id="password" 
+                                {% if current_ssid and current_ssid in networks|map(attribute='0') %}
+                                value="******************"
+                                {% else %}
+                                placeholder="Enter Wi-Fi password"
+                                {% endif %}>
+                        </div>
+                        <div class="button-group">
+                            <input type="submit" value="Connect">
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="card-footnote">
-
-            </div>
-        </div>
-
+            
+        </section>
     </div>
 </body>
-
-
-
 <script>
-    function copyToClipboard() {
-        var copyText = document.getElementById("serial_number");
-        copyText.select();
-        copyText.setSelectionRange(0, 99999); // For mobile devices
-        document.execCommand("copy");
+
+    function alert_success(message) {
+        showAlert(message, 'success');
     }
+
+    function alert_error(message) {
+        showAlert(message, 'error');
+    }
+
+    function showAlert(message, type) {
+        const alertBox = document.getElementById('alert-box');
+        alertBox.textContent = message;
+
+        // Remove any existing classes and add the appropriate ones
+        alertBox.className = 'alert-box show';
+        if (type === 'error') {
+            alertBox.classList.add('error');
+        }
+
+        // Remove the alert after 5 seconds
+        setTimeout(function() {
+            alertBox.classList.remove('show');
+        }, 5000);
+    }
+
+    // On page load, make the header blink green
+    window.addEventListener('load', function() {
+        const header = document.querySelector('.header');
+        header.classList.add('blink');
+
+        // Remove the blink class after the animation completes
+        header.addEventListener('animationend', function() {
+            header.classList.remove('blink');
+        });
+    });
 
     function openInBrowser(url) {
         // Try to open in a new window/tab
@@ -118,12 +183,66 @@
         }
     }
 
-    function activate_hotspot() {
-        fetch('/hotspot_mode')  
+    async function activate_hotspot() {
+        // get response from the server
+        try {
+            const response = await fetch('/hotspot_mode')
+            .then(response => {
+                if (response.ok) {
+                    alert_success('Hotspot activated');
+                } else {
+                    alert_error('Failed to activate hotspot');
+                }
+            })
+        } catch (error) {
+            alert_error('Failed to activate hotspot');
+        }
     }
 
-    function hub_reboot() {
-        fetch('/reboot')  
+    async function hub_reboot() {
+        // get response from the server
+        try {
+            const response = await fetch('/reboot')
+            .then(response => {
+                if (response.ok) {
+                    alert_success('Rebooting hub...');
+                } else {
+                    alert_error('Failed to reboot hub');
+                }
+            })
+        } catch (error) {
+            alert_error('Failed to reboot hub');
+        }
     }
+
+    function refresh() {
+        window.location.reload(); 
+    }
+
+    async function restart_services() {
+        try {
+            const response = await fetch('/restart_services');
+            if (response.ok) {
+                alert_success('Services restarted');
+            } else {
+                alert_error('Failed to restart services');
+            }
+        } catch (error) {
+            alert_error('Failed to restart services due to network error.');
+        }
+    }
+
+    function handleNetworkChange(selectedNetwork) {
+        const passwordInput = document.getElementById('password');
+        if (selectedNetwork === '{{ current_ssid }}') {
+            passwordInput.value = '******************';
+            passwordInput.placeholder = '';
+        } else {
+            passwordInput.value = '';
+            passwordInput.placeholder = 'Enter Wi-Fi password';
+        }
+    }
+
+    
 </script>
 </html>
