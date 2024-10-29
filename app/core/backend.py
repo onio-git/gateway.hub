@@ -96,7 +96,7 @@ class ApiBackend():
         if self.api_token == "":
             logging.error("No API token found. Cannot ping server")
             self.api_token = self.get_token(serial_hash)
-            return False
+            return False, {}
 
         headers = self.get_headers(include_auth_token=True)
         json_data = {}
@@ -114,7 +114,7 @@ class ApiBackend():
             logging.error(f"Failed to ping server: {response_data.get('statusCode')}")
             logging.debug(json_data)
             logging.debug(response_data)
-            return ""
+            return "", {}
 
     def gapi_geolocation(self, local_ap_list: json) -> bool:
         gapi_url = self.config.get('server', 'gapi_url') + self.config.get('server', 'gapi_key')
