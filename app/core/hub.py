@@ -99,6 +99,7 @@ class Hub:
 
                 self.command = ""
                 time.sleep(period)
+                logging.info(f"Pinging server...: {self.serial_hash}")
                 [self.command, self.meta_data] = self.api.ping_server(self.serial_hash)
 
 
