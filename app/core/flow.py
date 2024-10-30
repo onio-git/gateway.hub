@@ -137,9 +137,9 @@ class Flow():
         return None
 
     def execute_flow(self) -> None:
-        for node in self.flow_table:
-            if node.is_root:
-                self.execute_node(node)
+        # for node in self.flow_table:
+        #     if node.is_root:
+        #         self.execute_node(node)
         print("Flow executed")
         return
 
