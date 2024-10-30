@@ -43,8 +43,10 @@ def get_hardware_id() -> str:
 def main(log_level, serial_number, auto_scan, auto_collect):
     setup_logging(log_level)
 
-    serial_number = serial_number if serial_number != '' else config().get('settings', 'hub_serial_no')
-    # serial_number = serial_number if serial_number != '' else get_hardware_id()
+    serial_number = get_hardware_id().capitalize() # Using hardware ID as serial number
+    if serial_number == None:
+        serial_number = serial_number if serial_number != '' else config().get('settings', 'hub_serial_no')
+        logging.error("Failed to get hardware ID - using default serial number: " + serial_number)
 
     logging.info("Starting Smart Hub with serial number: " + serial_number)
     hub = Hub(serial_number)
@@ -53,7 +55,7 @@ def main(log_level, serial_number, auto_scan, auto_collect):
         hub.command = "scan_devices"
 
     if hub.startup():
-        hub.loop(auto_collect, period=5)
+        hub.loop(auto_collect, period=20)
     else:
         logging.error("Failed to start Smart Hub.")
 
