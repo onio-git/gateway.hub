@@ -1,4 +1,3 @@
-
 from core.backend import ApiBackend
 import logging
 import json
@@ -19,9 +18,6 @@ class Flow():
         self.name = None
         self.flow_table = []
 
-    
-
-
     class FlowNode():
         def __init__(self, node_id, node_type, node_name, node_data, node_function=None):
             self.node_id: int = node_id
@@ -39,8 +35,6 @@ class Flow():
             logging.info("Running node: " + self.node_name)
             self.function()
 
-        
-
     class Vertex():
         def __init__(self, parent, output_nr, child, input_nr):
             self.parent = parent
@@ -48,7 +42,6 @@ class Flow():
             self.child = child
             self.input_nr = input_nr
             self.vertex_data = None
-
 
     def print_flow(self) -> None:
         logging.info("Current flow:")
@@ -71,7 +64,6 @@ class Flow():
             for vertex in node.outputs:
                 logging.info("      Child: " + str(vertex.child) + " Input: " + str(vertex.input_nr))
 
-
     def set_flow(self, flow_json) -> bool:
         if not flow_json:
             logging.error("Flow is empty, skipping update")
@@ -87,6 +79,7 @@ class Flow():
         self.parse_flow()
         logging.info("Flow updated")
         self.print_flow()
+        self.execute_flow()
         return True
 
     def parse_flow(self) -> None:
@@ -128,7 +121,6 @@ class Flow():
 
             self.flow_table.append(flow_node)
 
-
     def execute_node(self, node) -> None:
         if not node:
             logging.error("Node is None, skipping execution")
@@ -137,14 +129,12 @@ class Flow():
         for vertex in node.outputs:
             child_node = self.get_node_by_id(vertex.child)
             self.execute_node(child_node)
-        
-    
+
     def get_node_by_id(self, node_id) -> FlowNode:
         for node in self.flow_table:
             if node.node_id == node_id:
                 return node
         return None
-
 
     def execute_flow(self) -> None:
         for node in self.flow_table:
@@ -152,7 +142,6 @@ class Flow():
                 self.execute_node(node)
         print("Flow executed")
         return
-
 
     # standard_functions = {
     #     "loop_event": self.loop_event,
@@ -170,9 +159,7 @@ class Flow():
     #     "message": self.message
     # }
 
-
     # def loop_event(self, unit: str, value: int) -> None:
-     
 
     #     def timer_function():
     #         if unit == "seconds":
@@ -189,4 +176,3 @@ class Flow():
     #             raise ValueError(f"Unsupported time unit: {unit}")
 
     #     threading.Thread(target=timer_function).start()
-        
