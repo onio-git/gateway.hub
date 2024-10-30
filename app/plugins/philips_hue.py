@@ -71,8 +71,8 @@ class philips_hue(PluginInterface):
             #         logging.info(f"Device {device.mac_address} is already connected.")
 
             # If not connected, attempt to connect and read
-            data = await device.connect_and_read()
-            # await device.update_attributes(system_command=self.command, meta_data=self.meta_data)
+            # data = await device.connect_and_read()
+            await device.update_attributes(system_command=self.command, meta_data=self.meta_data)
             # if not data:
             #     logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
             #     continue
