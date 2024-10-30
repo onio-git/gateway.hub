@@ -97,6 +97,10 @@ Now the hub should authenticate and respond to scan commands if the serial numbe
 15. **Check the local admin-server**
     If the hub is connected to ethernet, the admin-server should be vissible from any browser on the LAN.
     Go to "onio-hub.local" to see it.
+    Check the server logs with this command: 
+    ```bash
+    sudo journalctl -u SmarthubServer.service -f
+    ```
 
 ---
 
