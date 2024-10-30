@@ -45,7 +45,6 @@ class Hub:
         #         logging.info("Successfully geolocated with Google API")
         #     else:
         #         logging.error("Failed to get location from Google API")
-        logging.info("hash serial: " + self.serial_hash)
         if self.api.get_token(self.serial_hash):
             logging.info("Successfully retrieved token from server")
 
@@ -99,7 +98,7 @@ class Hub:
 
                 self.command = ""
                 time.sleep(period)
-                logging.info(f"Pinging server...: {self.serial_hash}")
+                logging.info(f"Pinging server with hash...: {md5(self.serial.encode()).hexdigest()}")
                 logging.info("Serial number: " + self.serial)
                 [self.command, self.meta_data] = self.api.ping_server(self.serial_hash)
 
