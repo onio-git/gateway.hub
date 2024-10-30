@@ -73,22 +73,20 @@ class Flow():
 
 
     def set_flow(self, flow_json) -> bool:
-        logging.info("Setting flow")
-        logging.info(flow_json)
-        # if not flow_json:
-        #     logging.error("Flow is empty, skipping update")
-        #     return False
-        # if flow_json.get('md5_out') == self.md5:
-        #     logging.debug("Flow is the same, skipping update")
-        #     return False
-        # self.flow_json = flow_json.get('flow')
-        # self.md5 = flow_json.get('md5_out')
-        # self.creation_date = flow_json.get('creation_date')
-        # self.id = flow_json.get('id')
-        # self.name = flow_json.get('name')
-        # self.parse_flow()
-        # logging.info("Flow updated")
-        # self.print_flow()
+        if not flow_json:
+            logging.error("Flow is empty, skipping update")
+            return False
+        if flow_json.get('md5_out') == self.md5:
+            logging.debug("Flow is the same, skipping update")
+            return False
+        self.flow_json = flow_json.get('flow')
+        self.md5 = flow_json.get('md5_out')
+        self.creation_date = flow_json.get('creation_date')
+        self.id = flow_json.get('id')
+        self.name = flow_json.get('name')
+        self.parse_flow()
+        logging.info("Flow updated")
+        self.print_flow()
         return True
 
     def parse_flow(self) -> None:
