@@ -45,7 +45,7 @@ class Hub:
         #         logging.info("Successfully geolocated with Google API")
         #     else:
         #         logging.error("Failed to get location from Google API")
-
+        logging.info("hash serial: " + self.serial_hash)
         if self.api.get_token(self.serial_hash):
             logging.info("Successfully retrieved token from server")
 
