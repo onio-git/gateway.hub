@@ -111,6 +111,8 @@ class ApiBackend():
             return self.command
         else:
             logging.error(f"Failed to ping server: {response_data.get('statusCode')}")
+            if response_data.get('statusCode') == 401:
+                self.api_token = self.get_token(serial_hash)
             logging.error(json_data)
             logging.error(response_data)
             return ""

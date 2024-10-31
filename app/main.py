@@ -58,7 +58,7 @@ def main(log_level, serial_number, auto_scan, auto_collect):
         hub.command = "scan_devices"
 
     if hub.startup(): 
-        hub.loop(auto_collect, period=20)
+        hub.loop(auto_collect, period=5)
     else:
         logging.error("Failed to start Smart Hub.")
 
