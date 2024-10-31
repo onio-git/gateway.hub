@@ -12,10 +12,12 @@ from config.config import ConfigSettings
 from core.ble import BLEManager
 from core.backend import ApiBackend
 from core.flow import Flow
+from log.log import CloudLogger
 
 class Hub:
     def __init__(self, serial_no):
         self.config = ConfigSettings()
+        self.cloud_logger = CloudLogger()
         self.plugin_dir = "plugins"
         self.plugins = []
 
@@ -58,6 +60,7 @@ class Hub:
             logging.info("Successfully retrieved flow")
 
         logging.info("Startup complete... Beginning main routine\n")
+        self.cloud_logger.add_log_line("SYSTEM", "Startup complete... Beginning main routine")
         return True
     
 
@@ -89,8 +92,9 @@ class Hub:
                     pass
                 
                 self.command = ""
+                self.cloud_logger.add_log_line("SYSTEM", "Main loop iterated...")
+                self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
                 time.sleep(period)
-                self.command = self.api.ping_server(self.serial_hash)
                 
 
 

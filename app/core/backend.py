@@ -93,14 +93,14 @@ class ApiBackend():
             return False
 
 
-    def ping_server(self, serial_hash) -> str:
+    def ping_server(self, serial_hash, logs) -> str:
         if self.api_token == "":
             logging.error("No API token found. Cannot ping server")
             self.api_token = self.get_token(serial_hash)
             return False
         
         headers = self.get_headers(include_auth_token=True)
-        json_data = {}
+        json_data = logs
 
         response_data = self.make_api_request(self.config.get('endpoints', 'ping_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
 
@@ -111,8 +111,8 @@ class ApiBackend():
             return self.command
         else:
             logging.error(f"Failed to ping server: {response_data.get('statusCode')}")
-            logging.debug(json_data)
-            logging.debug(response_data)
+            logging.error(json_data)
+            logging.error(response_data)
             return ""
 
 
