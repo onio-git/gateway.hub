@@ -35,6 +35,7 @@ class Hub:
         # Comment out the plugins you don't want to load
         # Will later be managed by API ()
         self.load_plugin("null") # Sensor emulator plugin 
+        self.load_plugin("onio_ble") # ONiO BLE plugin
         # self.load_plugin("philips_hue") # Philips hue experimental plugin 
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
         # self.load_plugin("flic") # Flic plugin
