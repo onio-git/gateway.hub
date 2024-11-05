@@ -1,6 +1,7 @@
 import logging
 from core.plugin_interface import PluginInterface
 from core.backend import ApiBackend
+from core.flow import Flow
 from bleak import BleakClient, BleakGATTCharacteristic
 import asyncio
 from plugins.flic_assistant import FlicClient, ScanWizard, ScanWizardResult
@@ -12,12 +13,14 @@ FLIC_EVENT_CHAR_UUID = "00420002-8f59-4420-870d-84f3b617e493"
 
 
 class flic(PluginInterface):
-    def __init__(self):
+    def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
         self.devices = {}
         self.plugin_active = False
+        self.api = api
+        self.flow = flow
 
-    def execute(self, api: ApiBackend) -> None:
+    def execute(self) -> None:
         if self.plugin_active:
             return
         self.plugin_active = True

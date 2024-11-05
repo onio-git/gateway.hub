@@ -43,6 +43,7 @@ class BLEManager:
             if filter_func(result):
                 new_device = plugin.Device(result[0].address, result[0].name)
                 plugin.devices[result[0].address] = new_device
+                plugin.associate_flow_node(new_device)
 
         self.list_devices(plugin)
         return 

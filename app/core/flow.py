@@ -19,9 +19,6 @@ class Flow():
         self.name = None
         self.flow_table = []
 
-    
-
-
     class FlowNode():
         def __init__(self, node_id, node_type, node_name, node_data, node_function=None):
             self.node_id: int = node_id
@@ -35,11 +32,6 @@ class Flow():
             self.is_leaf = False
             self.function = node_function
 
-        def run(self):
-            logging.info("Running node: " + self.node_name)
-            self.function()
-
-        
 
     class Vertex():
         def __init__(self, parent, output_nr, child, input_nr):
@@ -129,14 +121,18 @@ class Flow():
             self.flow_table.append(flow_node)
 
 
-    def execute_node(self, node) -> None:
+    async def execute_node(self, node) -> None:
         if not node:
             logging.error("Node is None, skipping execution")
             return
-        node.function()
+
+        if node.function is None:
+            logging.error(f"Node {node.node_name} has no function, skipping execution")
+        else:
+            await node.function()
         for vertex in node.outputs:
             child_node = self.get_node_by_id(vertex.child)
-            self.execute_node(child_node)
+            await self.execute_node(child_node)
         
     
     def get_node_by_id(self, node_id) -> FlowNode:
@@ -152,6 +148,17 @@ class Flow():
                 self.execute_node(node)
         print("Flow executed")
         return
+    
+
+    async def receive_device_data_to_flow(self, device_id, data) -> None:
+        logging.info(f"################################################")
+        for node in self.flow_table:
+            if node.node_data.get('mac_address') == device_id:
+                logging.info(f"Received data for node: {node.node_name} - {data}")
+                await self.execute_node(node)
+                return
+        return
+    
 
 
     # standard_functions = {

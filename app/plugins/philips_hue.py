@@ -1,6 +1,7 @@
 import logging
 from core.plugin_interface import PluginInterface
 from core.backend import ApiBackend
+from core.flow import Flow
 from bleak import BleakClient
 import asyncio
 import pexpect
@@ -42,17 +43,27 @@ def color_by_name(name: str) -> bytearray:
     return color_map.get(name, bytearray([0x30, 0x50, 0x30, 0x54]))
 
 class philips_hue(PluginInterface):
-    def __init__(self):
+    def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
         self.devices = {}
         self.plugin_active = False
+        self.api = api
+        self.flow = flow
 
-    def execute(self, api: ApiBackend) -> None:
+    def execute(self) -> None:
         if self.plugin_active:
             return
         self.plugin_active = True
         asyncio.run(self.run_devices())
         self.plugin_active = False
+
+    def associate_flow_node(self, device):
+            # Check each node in the flow table
+            for node in self.flow.flow_table:
+                if node.node_data.get('mac_address') == device.mac_address:
+                    node.device = device
+                if node.node_name == "toggle":
+                    node.function = device.toggle_light
 
     async def run_devices(self):
         for _, device in self.devices.items():
@@ -62,9 +73,13 @@ class philips_hue(PluginInterface):
             #         logging.info(f"Device {device.mac_address} is already connected.")
 
             # If not connected, attempt to connect and read
+            if device.connection_attempts >= 3:
+                logging.error(f"Exceeded connection attempts for {device.mac_address} - {device.device_name}")
+                continue
             data = await device.connect_and_read()
             if not data:
                 logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+                device.connection_attempts += 1
                 continue
 
             else:
@@ -103,6 +118,8 @@ class philips_hue(PluginInterface):
             self.is_paired = False
             self.is_trusted = False
             self.is_connected = False
+            self.connection_attempts = 0
+        
 
         async def connect_and_read(self):
             try:
@@ -180,35 +197,103 @@ class philips_hue(PluginInterface):
 
             return self.state
 
-        async def turn_light_off(self, client):
+        async def toggle_light(self, client=None):
+            logging.info("Toggling Light...")
+            if client is None:
+                async with BleakClient(self.mac_address) as client:
+                    try:
+                        if self.state["light_is_on"]:
+                            await self.turn_light_off(client)
+                            self.state["light_is_on"] = False
+                        else:
+                            await self.turn_light_on(client)
+                            self.state["light_is_on"] = True
+                    except Exception as e:
+                        logging.error(f"Failed to toggle light: {e}")
+            else:
+                try:
+                    if self.state["light_is_on"]:
+                        await self.turn_light_off(client)
+                        self.state["light_is_on"] = False
+                    else:
+                        await self.turn_light_on(client)
+                        self.state["light_is_on"] = True
+                except Exception as e:
+                    logging.error(f"Failed to toggle light: {e}")
+
+
+        async def turn_light_off(self, client=None):
             logging.info("Turning Light off...")
-            try:
-                await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x00", response=True)
-            except Exception as e:
-                logging.error(f"Failed to turn off light: {e}")
+            if client is None:
+                async with BleakClient(self.mac_address) as client:
+                    try:
+                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x00", response=True)
+                        self.state["light_is_on"] = False
+                    except Exception as e:
+                        logging.error(f"Failed to turn off light: {e}")
+            else: 
+                try:
+                    await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x00", response=True)
+                    self.state["light_is_on"] = False
+                except Exception as e:
+                    logging.error(f"Failed to turn off light: {e}")
 
-        async def turn_light_on(self, client):
+        async def turn_light_on(self, client=None):
             logging.info("Turning Light on...")
-            try:
-                await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x01", response=True)
-            except Exception as e:
-                logging.error(f"Failed to turn on light: {e}")
+            if client is None:
+                async with BleakClient(self.mac_address) as client:
+                    try:
+                        await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x01", response=True)
+                        self.state["light_is_on"] = True
+                    except Exception as e:
+                        logging.error(f"Failed to turn on light: {e}")
+            else:
+                try:
+                    await client.write_gatt_char(LIGHT_CHARACTERISTIC, b"\x01", response=True)
+                    self.state["light_is_on"] = True
+                except Exception as e:
+                    logging.error(f"Failed to turn on light: {e}")
 
-        async def set_color(self, client, color):
+        async def set_color(self, client=None, color=None):
             logging.info(f"Setting color to [{', '.join(f'0x{byte:02x}' for byte in color)}] ...")
-            try:
-                await client.write_gatt_char(COLOR_CHARACTERISTIC, color, response=True)
-            except Exception as e:
-                logging.error(f"Failed to set color: {e}")
+            if color is None:
+                color = self.state["color"]
+            if client is None:
+                async with BleakClient(self.mac_address) as client:
+                    try:
+                        await client.write_gatt_char(COLOR_CHARACTERISTIC, color, response=True)
+                        self.state["color"] = color
+                    except Exception as e:
+                        logging.error(f"Failed to set color: {e}")
+            else:
+                try:
+                    await client.write_gatt_char(COLOR_CHARACTERISTIC, color, response=True)
+                    self.state["color"] = color
+                except Exception as e:
+                    logging.error(f"Failed to set color: {e}")
 
-        async def set_brightness(self, client, brightness):
+        async def set_brightness(self, client=None, brightness=None):
             logging.info(f"Setting brightness to {brightness} % ...")
-            # Brightness range: 0-100 - converts to 1-254
-            brightness = int((brightness / 100) * 254)
-            try:
-                await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
-            except Exception as e:
-                logging.error(f"Failed to set brightness: {e}")
+            if brightness is None:
+                brightness = self.state["brightness"]
+            if client is None:
+                async with BleakClient(self.mac_address) as client:
+                # Brightness range: 0-100 - converts to 1-254
+                    brightness = int((brightness / 100) * 254)
+                    try:
+                        await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
+                        self.state["brightness"] = brightness
+                    except Exception as e:
+                        logging.error(f"Failed to set brightness: {e}")
+            else:
+                # Brightness range: 0-100 - converts to 1-254
+                brightness = int((brightness / 100) * 254)
+                try:
+                    await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
+                    self.state["brightness"] = brightness
+                except Exception as e:
+                    logging.error(f"Failed to set brightness: {e}")
+
 
 async def pair_and_trust(mac_address, retries=3, delay=5):
     """

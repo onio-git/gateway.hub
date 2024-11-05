@@ -4,16 +4,19 @@ from config.config import ConfigSettings as config
 from datetime import datetime
 from math import sin, cos, pi
 from core.backend import ApiBackend
+from core.flow import Flow
 import random
 from hashlib import md5
 import yaml
 import os
 
 class null(PluginInterface):
-    def __init__(self):
+    def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
         self.devices = {}
         self.config = config()
+        self.api = api
+        self.flow = flow
 
         # Read the sensor configuration file path from the main config
         config_file_path = self.config.get('settings', 'sensor_config_file')
@@ -26,7 +29,10 @@ class null(PluginInterface):
             device = self.Device(sensor_info)
             self.devices[device.mac_address] = device
 
-    def execute(self, api: ApiBackend) -> None:
+    def associate_flow_node(self, device):
+        pass
+
+    def execute(self) -> None:
         for _, device in self.devices.items():
             current_time = datetime.now()
             if device.last_execution_time is None or \
@@ -52,7 +58,7 @@ class null(PluginInterface):
                             ]
                         }
                     }
-                    api.send_collected_data(jsn_data)
+                    self.api.send_collected_data(jsn_data)
                 except Exception as e:
                     logging.error(f"Error sending data to API: {str(e)}")
 

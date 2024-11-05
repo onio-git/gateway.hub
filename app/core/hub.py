@@ -33,11 +33,12 @@ class Hub:
 
         # Load plugins
         # Comment out the plugins you don't want to load
-        # Will later be managed by API ()
+        # Will later be managed by API 
+
         self.load_plugin("null") # Sensor emulator plugin 
         self.load_plugin("onio_ble") # ONiO BLE plugin
-        # self.load_plugin("philips_hue") # Philips hue experimental plugin 
-        # self.load_plugin("xiaomi") # Xiaomi experimental plugin
+        self.load_plugin("philips_hue") # Philips hue experimental plugin 
+        self.load_plugin("xiaomi") # Xiaomi experimental plugin
         # self.load_plugin("flic") # Flic plugin
 
     def startup(self):
@@ -69,6 +70,7 @@ class Hub:
 
         # Initial scan
         self.scan_for_devices()
+        plugins_last_executed = 0.0
 
         while True:
             try:                
@@ -88,12 +90,14 @@ class Hub:
 
                 elif self.command == "":
                     # if auto_collect:
-                    logging.debug("Automatically executing plugins")
-                    self.execute_plugins()
-                    pass
+                    # Only execute plugins every 5 minutes
+                    if (time.time() - plugins_last_executed > 300) or (plugins_last_executed == 0.0):
+                        logging.debug("Automatically executing plugins")
+                        self.execute_plugins()
+                        plugins_last_executed = time.time()
+                        pass
                 
                 self.command = ""
-                self.cloud_logger.add_log_line("SYSTEM", "Main loop iterated...")
                 self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
                 time.sleep(period)
                 
@@ -124,7 +128,7 @@ class Hub:
             logging.error(f"Plugin not found: {plugin_name}")
             return
         plugin_class = getattr(module, plugin_name)
-        plugin = plugin_class()
+        plugin = plugin_class(api=self.api, flow=self.flow)
         self.plugins.append(plugin)
         logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
 
@@ -144,5 +148,5 @@ class Hub:
 
     def execute_plugins(self):
         for plugin in self.plugins:
-            thread = threading.Thread(target=plugin.execute, args=(self.api,))
+            thread = threading.Thread(target=plugin.execute)
             thread.start()
