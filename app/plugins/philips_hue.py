@@ -6,6 +6,7 @@ from bleak import BleakClient
 import asyncio
 import pexpect
 import sys
+import random
 
 # Configure Logging
 logging.basicConfig(
@@ -25,11 +26,11 @@ COLOR_CHARACTERISTIC = "932c32bd-0005-47a2-835a-a8d455b859dd"
 COMBINED_CHARACTERISTIC = "932c32bd-0007-47a2-835a-a8d455b859dd"
 FIRMWARE_CHARACTERISTIC = "00002a28-0000-1000-8000-00805f9b34fb"
 
-def color_by_name(name: str) -> bytearray:
-    name = name.lower()
+
+def color_by_name(name: str = None) -> bytearray:
     color_map = {
         "white": bytearray([0x30, 0x50, 0x30, 0x54]),
-        "warm yellow": bytearray([0x30, 0x6a, 0x30, 0x6d]),
+        "warmyellow": bytearray([0x30, 0x6a, 0x30, 0x6d]),
         "orange": bytearray([0x30, 0x7e, 0x30, 0x70]),
         "red": bytearray([0x9E, 0xB0, 0xF3, 0x4E]),
         "pink": bytearray([0x30, 0x65, 0x30, 0x1F]),
@@ -40,6 +41,10 @@ def color_by_name(name: str) -> bytearray:
         "green": bytearray([0xA7, 0x4D, 0xE4, 0x98]),
         "yellowgreen": bytearray([0x30, 0x38, 0x30, 0x4e]),
     }
+    if name is None:
+        random_color = random.choice(list(color_map.values()))
+        return random_color
+    name = name.lower()
     return color_map.get(name, bytearray([0x30, 0x50, 0x30, 0x54]))
 
 class philips_hue(PluginInterface):
@@ -197,10 +202,30 @@ class philips_hue(PluginInterface):
 
             return self.state
 
-        async def toggle_light(self, client=None):
+        async def toggle_light(self, client=None, data=None):
             logging.info("Toggling Light...")
-            if client is None:
+            if data['z_acceleration'] < 0:
+                logging.info("Button is upside down. trying to change color...")
+                # Change color to random
+                color = color_by_name()
                 async with BleakClient(self.mac_address) as client:
+                    try:
+                        await self.set_color(client, color)
+                    except Exception as e:
+                        logging.error(f"Failed to set color: {e}")
+            else:
+                if client is None:
+                    async with BleakClient(self.mac_address) as client:
+                        try:
+                            if self.state["light_is_on"]:
+                                await self.turn_light_off(client)
+                                self.state["light_is_on"] = False
+                            else:
+                                await self.turn_light_on(client)
+                                self.state["light_is_on"] = True
+                        except Exception as e:
+                            logging.error(f"Failed to toggle light: {e}")
+                else:
                     try:
                         if self.state["light_is_on"]:
                             await self.turn_light_off(client)
@@ -210,16 +235,6 @@ class philips_hue(PluginInterface):
                             self.state["light_is_on"] = True
                     except Exception as e:
                         logging.error(f"Failed to toggle light: {e}")
-            else:
-                try:
-                    if self.state["light_is_on"]:
-                        await self.turn_light_off(client)
-                        self.state["light_is_on"] = False
-                    else:
-                        await self.turn_light_on(client)
-                        self.state["light_is_on"] = True
-                except Exception as e:
-                    logging.error(f"Failed to toggle light: {e}")
 
 
         async def turn_light_off(self, client=None):

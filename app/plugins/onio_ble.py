@@ -29,6 +29,9 @@ class onio_ble(PluginInterface):
         self.api = api
         self.flow = flow
 
+    def associate_flow_node(self, device):
+        pass
+
     def execute(self) -> None:
         """Start continuous scanning if not already active"""
         if self.plugin_active:
@@ -46,10 +49,10 @@ class onio_ble(PluginInterface):
         while not self.stop_event.is_set():
             try:
                 await self.scan_cycle()
-                await asyncio.sleep(1)  # Brief pause between cycles
+                await asyncio.sleep(0.5)  # Brief pause between cycles
             except Exception as e:
                 logging.error(f"Error in scanning loop: {e}")
-                await asyncio.sleep(1)  # Wait before retrying
+                await asyncio.sleep(0.5)  # Wait before retrying
 
         logging.info("ONiO BLE scanning loop stopped")
         self.plugin_active = False
@@ -63,7 +66,7 @@ class onio_ble(PluginInterface):
             try:
                 self.scanner = BleakScanner(detection_callback=self.detection_callback)
                 await self.scanner.start()
-                await asyncio.sleep(5)  # Scan duration
+                await asyncio.sleep(3)  # Scan duration
                 await self.scanner.stop()
                 self.scanner = None
             except Exception as e:
@@ -129,6 +132,7 @@ class onio_ble(PluginInterface):
                     if (manufacturer_data_bytes[i] == 0xFE and 
                         manufacturer_data_bytes[i + 1] == 0xE5 and 
                         manufacturer_data_bytes[i + 2] in self.DEVICE_TYPES):
+                        logging.info(f"Processing ONiO device data: {device.address}")
                         
                         device_type = manufacturer_data_bytes[i + 2]
                         data_payload = manufacturer_data_bytes[i + 3:]
@@ -150,16 +154,16 @@ class onio_ble(PluginInterface):
                         if device_type == 0xAA:  # Blomsterpinne
                             if len(data_payload) >= 4:
                                 processed_data.update({
-                                    'temperature': int.from_bytes(data_payload[0:2], byteorder='little') / 100,
                                     'humidity': data_payload[2],
-                                    'battery': data_payload[3]
                                 })
                         
                         elif device_type in [0xBB, 0xCC]:  # ONiO-Knapp variants
                             if len(data_payload) >= 2:
+                                z = int(data_payload[3].to_bytes(1, 'big').hex(), 16)
                                 processed_data.update({
                                     'button_state': data_payload[0],
-                                    'battery': data_payload[1]
+                                    # get 2s complement of the 4th byte. convert to int
+                                    'z_acceleration': z if z < 128 else z - 256,
                                 })
 
                         # Send data to flow

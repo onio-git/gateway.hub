@@ -16,11 +16,11 @@ class ApiBackend():
 
     def get_headers(self, include_auth_token=False) -> dict:
         headers = {
-            'x-app-id': self.config.get('headers', 'x_app_id'),
-            'x-app-secret': self.config.get('headers', 'x_app_secret')
+            'xid': self.config.get('headers', 'x_app_id'),
+            'xsecret': self.config.get('headers', 'x_app_secret')
         }
         if include_auth_token and self.api_token:
-            headers['Authorization'] = "Bearer " + self.api_token
+            headers['Auth'] = "Bearer " + self.api_token
         return headers
 
 
@@ -74,6 +74,7 @@ class ApiBackend():
 
         self.refresh_token = data['refreshToken']
         self.api_token = data['accessToken']
+        logging.info("Auth Token: " + self.api_token)
         return True
 
 

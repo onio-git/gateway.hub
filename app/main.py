@@ -1,6 +1,7 @@
 import click
 import logging
 import os
+import time
 
 from config.config import ConfigSettings as config
 from core.hub import Hub
@@ -57,6 +58,14 @@ def main(log_level, serial_number, auto_scan, auto_collect):
     if auto_scan:
         hub.command = "scan_devices"
 
+    # delay before starting the loop
+    startup_delay = 7
+    logging.info(f"Startup delayed to allow for network connection to be established")
+    while startup_delay > 0:
+        logging.info(f"Starting in {startup_delay} seconds...")
+        time.sleep(1)
+        startup_delay -= 1
+    
     if hub.startup(): 
         hub.loop(auto_collect, period=5)
     else:

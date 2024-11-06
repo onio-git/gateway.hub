@@ -129,10 +129,12 @@ class Flow():
         if node.function is None:
             logging.error(f"Node {node.node_name} has no function, skipping execution")
         else:
-            await node.function()
+            await node.function(data=node.node_data)
         for vertex in node.outputs:
             child_node = self.get_node_by_id(vertex.child)
-            await self.execute_node(child_node)
+            if child_node:
+                child_node.node_data.update(node.node_data)
+                await self.execute_node(child_node)
         
     
     def get_node_by_id(self, node_id) -> FlowNode:
@@ -154,6 +156,7 @@ class Flow():
         logging.info(f"################################################")
         for node in self.flow_table:
             if node.node_data.get('mac_address') == device_id:
+                node.node_data.update(data)
                 logging.info(f"Received data for node: {node.node_name} - {data}")
                 await self.execute_node(node)
                 return
