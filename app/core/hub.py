@@ -35,10 +35,11 @@ class Hub:
         # Comment out the plugins you don't want to load
         # Will later be managed by API 
 
-        # self.load_plugin("null") # Sensor emulator plugin 
+        self.load_plugin("null") # Sensor emulator plugin 
         self.load_plugin("onio_ble") # ONiO BLE plugin
         self.load_plugin("philips_hue") # Philips hue experimental plugin 
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
+        self.load_plugin("sonos") # Sonos plugin
         # self.load_plugin("flic") # Flic plugin
 
     def startup(self):
@@ -98,8 +99,8 @@ class Hub:
                         pass
                 
                 self.command = ""
-                self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
                 time.sleep(period)
+                self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
                 
 
 
@@ -139,7 +140,8 @@ class Hub:
                 asyncio.run(self.ble.scan_by_plugin(plugin, timeout=10))
                 
             elif plugin.protocol == 'WiFi':
-                pass
+                plugin.discover()
+
             elif plugin.protocol == 'Zigbee':
                 pass
             elif plugin.protocol == 'Zwave':

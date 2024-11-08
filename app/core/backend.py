@@ -27,12 +27,16 @@ class ApiBackend():
     def make_api_request(self, endpoint, json_data, headers, timeout) -> json:
         url = self.config.get('server', 'server_url') + endpoint
         logging.debug(f"Making request to: {url}")
-        if json_data == None:
-            response = requests.get(url, headers=headers, timeout=timeout)
-        else:
-            response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
-        try: return json.loads(response.text)
-        except: return {'statusCode': response.status_code, 'data': response.text}
+        try:
+            if json_data == None:
+                response = requests.get(url, headers=headers, timeout=timeout)
+            else:
+                response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
+            try: return json.loads(response.text)
+            except: return {'statusCode': response.status_code, 'data': response.text}
+        except requests.RequestException as e:
+            logging.error(f"Failed to make request to {url} due to {e}")
+            return None
 
 
     def get_token(self, serial_hash: str) -> bool:
@@ -104,6 +108,10 @@ class ApiBackend():
         json_data = logs
 
         response_data = self.make_api_request(self.config.get('endpoints', 'ping_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
+
+        if response_data is None:
+            logging.error("Failed to ping server")
+            return ""
 
         if response_data.get('statusCode') == 200:
             self.command = response_data['data']['command']

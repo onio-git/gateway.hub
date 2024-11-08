@@ -163,40 +163,23 @@ class Flow():
         return
     
 
+    def loop_event(self, data) -> None:
+        logging.info(f"Loop event: {data}")
+        pass
 
-    # standard_functions = {
-    #     "loop_event": self.loop_event,
-    #     "clock_event": self.clock_event,
-    #     "date_event": self.date_event,
-    #     "sun_rise_event": self.sun_rise_event,
-    #     "sun_set_event": self.sun_set_event,
-    #     "the_day_is_between": self.the_day_is_between,
-    #     "the_time_is_between": self.the_time_is_between,
-    #     "the_day_is": self.the_day_is,
-    #     "delay": self.delay,
-    #     "and": self.and_operator,
-    #     "or": self.or_operator,
-    #     "not": self.not_operator,
-    #     "message": self.message
-    # }
+    standard_functions = {
+        "loop_event": loop_event,
+        # "clock_event": clock_event,
+        # "date_event": date_event,
+        # "sun_rise_event": sun_rise_event,
+        # "sun_set_event": sun_set_event,
+        # "the_day_is_between": the_day_is_between,
+        # "the_time_is_between": the_time_is_between,
+        # "the_day_is": the_day_is,
+        # "delay": delay,
+        # "and": and_operator,
+        # "or": or_operator,
+        # "not": not_operator,
+        # "message": message
+    }
 
-
-    # def loop_event(self, unit: str, value: int) -> None:
-     
-
-    #     def timer_function():
-    #         if unit == "seconds":
-    #             time.sleep(value)
-    #         else if unit == "minutes":
-    #             time.sleep(value * 60)
-    #         else if unit == "hours":
-    #             time.sleep(value * 3600)
-    #         else if unit == "days":
-    #             time.sleep(value * 86400)
-    #         else if unit == "months":
-    #             time.sleep(value * 2592000)
-    #         else:
-    #             raise ValueError(f"Unsupported time unit: {unit}")
-
-    #     threading.Thread(target=timer_function).start()
-        

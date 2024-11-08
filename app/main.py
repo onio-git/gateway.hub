@@ -59,8 +59,14 @@ def main(log_level, serial_number, auto_scan, auto_collect):
         hub.command = "scan_devices"
 
     # delay before starting the loop
-    startup_delay = 7
-    logging.info(f"Startup delayed to allow for network connection to be established")
+    startup_delay = 15
+    # ping google
+    res = os.system("ping -c 1 google.com")
+    if res == 0:
+        startup_delay = 0
+    else:
+        logging.info(f"Startup delayed to allow for network connection to be established")
+        
     while startup_delay > 0:
         logging.info(f"Starting in {startup_delay} seconds...")
         time.sleep(1)
