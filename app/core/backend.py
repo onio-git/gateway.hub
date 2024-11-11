@@ -97,7 +97,7 @@ class ApiBackend():
             return False
 
 
-    def ping_server(self, serial_hash, logs) -> str:
+    def ping_server(self, serial_hash, logs) -> (str, dict):
         if self.api_token == "":
             logging.error("No API token found. Cannot ping server")
             self.api_token = self.get_token(serial_hash)
@@ -111,7 +111,7 @@ class ApiBackend():
 
         if response_data is None:
             logging.error("Failed to ping server")
-            return ""
+            return "", {}
 
         if response_data.get('statusCode') == 200:
             self.command = response_data['data']['command']

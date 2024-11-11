@@ -35,11 +35,12 @@ class Hub:
         # Comment out the plugins you don't want to load
         # Will later be managed by API
 
-        self.load_plugin("null") # Sensor emulator plugin
-        self.load_plugin("onio_ble") # ONiO BLE plugin
-        self.load_plugin("philips_hue") # Philips hue experimental plugin
+        # self.load_plugin("null") # Sensor emulator plugin
+        # self.load_plugin("onio_ble") # ONiO BLE plugin
+        self.load_plugin("philips_hue")  # Philips hue experimental plugin
+
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
-        self.load_plugin("sonos") # Sonos plugin
+        # self.load_plugin("sonos") # Sonos plugin
         # self.load_plugin("flic") # Flic plugin
 
     def startup(self):
@@ -103,8 +104,9 @@ class Hub:
                 
                 self.command = ""
                 time.sleep(period)
-                self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
-                
+                (self.command, self.meta_data) = self.api.ping_server(self.serial_hash,
+                                                                      self.cloud_logger.format_logs_to_json())
+
 
 
             except KeyboardInterrupt:
@@ -147,5 +149,5 @@ class Hub:
 
     def execute_plugins(self):
         for plugin in self.plugins:
-            thread = threading.Thread(target=plugin.execute)
+            thread = threading.Thread(target=plugin.execute, args=(self.command, self.meta_data))
             thread.start()
