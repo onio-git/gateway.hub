@@ -17,24 +17,27 @@ class ApiBackend():
 
     def get_headers(self, include_auth_token=False) -> dict:
         headers = {
-            'x-app-id': self.config.get('headers', 'x_app_id'),
-            'x-app-secret': self.config.get('headers', 'x_app_secret')
+            'xid': self.config.get('headers', 'x_app_id'),
+            'xsecret': self.config.get('headers', 'x_app_secret')
         }
         if include_auth_token and self.api_token:
-            headers['Authorization'] = "Bearer " + self.api_token
+            headers['Auth'] = "Bearer " + self.api_token
         return headers
 
     def make_api_request(self, endpoint, json_data, headers, timeout) -> json:
         url = self.config.get('server', 'server_url') + endpoint
         logging.debug(f"Making request to: {url}")
-        if json_data == None:
-            response = requests.get(url, headers=headers, timeout=timeout)
-        else:
-            response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
         try:
-            return json.loads(response.text)
-        except:
-            return {'statusCode': response.status_code, 'data': response.text}
+            if json_data == None:
+                response = requests.get(url, headers=headers, timeout=timeout)
+            else:
+                response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
+            try: return json.loads(response.text)
+            except: return {'statusCode': response.status_code, 'data': response.text}
+        except requests.RequestException as e:
+            logging.error(f"Failed to make request to {url} due to {e}")
+            return None
+
 
     def get_token(self, serial_hash: str) -> bool:
         json_data = {'serial_number': serial_hash}
@@ -74,6 +77,7 @@ class ApiBackend():
 
         self.refresh_token = data['refreshToken']
         self.api_token = data['accessToken']
+        logging.info("Auth Token: " + self.api_token)
         return True
 
     def refresh_token(self, refresh_token: str) -> bool:
@@ -92,17 +96,22 @@ class ApiBackend():
             logging.debug(response_data)
             return False
 
-    def ping_server(self, serial_hash) -> [str, dict]:
+
+    def ping_server(self, serial_hash, logs) -> str:
         if self.api_token == "":
             logging.error("No API token found. Cannot ping server")
             self.api_token = self.get_token(serial_hash)
             return False, {}
 
         headers = self.get_headers(include_auth_token=True)
-        json_data = {}
+        json_data = logs
 
         response_data = self.make_api_request(self.config.get('endpoints', 'ping_ep'), json_data, headers,
                                               int(self.config.get('settings', 'http_timeout')))
+
+        if response_data is None:
+            logging.error("Failed to ping server")
+            return ""
 
         if response_data.get('statusCode') == 200:
             self.command = response_data['data']['command']
@@ -112,9 +121,12 @@ class ApiBackend():
             return self.command, self.meta_data
         else:
             logging.error(f"Failed to ping server: {response_data.get('statusCode')}")
-            logging.debug(json_data)
-            logging.debug(response_data)
+            if response_data.get('statusCode') == 401:
+                self.get_token(serial_hash)
+            logging.error(json_data)
+            logging.error(response_data)
             return "", {}
+
 
     def gapi_geolocation(self, local_ap_list: json) -> bool:
         gapi_url = self.config.get('server', 'gapi_url') + self.config.get('server', 'gapi_key')

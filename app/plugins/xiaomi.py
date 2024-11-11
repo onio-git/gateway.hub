@@ -1,6 +1,8 @@
 import logging
 from core.plugin_interface import PluginInterface
 from core.backend import ApiBackend
+from config.config import ConfigSettings as config
+from core.flow import Flow
 import asyncio
 from bleak import BleakClient
 from datetime import datetime
@@ -14,12 +16,18 @@ READ_BATTERY_UUID = "00001a02-0000-1000-8000-00805f9b34fb"
 
 # class name must match the file name
 class xiaomi(PluginInterface):
-    def __init__(self):
+    def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
         self.devices = {}
         self.plugin_active = False
+        self.api = api
+        self.flow = flow
+        self.config = config()
 
-    def execute(self, api: ApiBackend) -> None:
+    def associate_flow_node(self, device):
+        pass
+
+    def execute(self) -> None:
         if self.plugin_active: # prevent multiple instances of the plugin from running at the same time
             return
         self.plugin_active = True
@@ -29,19 +37,22 @@ class xiaomi(PluginInterface):
                 logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
                 continue
             jsn_data = {
-                "device_id": device.mac_address,
-                "device_name": device.device_name,
-                "timestamp": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-                "firmware": device.firmware,
-                "data": { # limit decimals to 2
-                    "temperature": round(data['temperature'], 2),
-                    "brightness": round(data['brightness'], 2),
-                    "moisture": round(data['moisture'], 2),
-                    "conductivity": round(data['conductivity'], 2),
-                    "energy": round(data['energy'], 2)
+                "devid": device.mac_address,
+                "gtwid": self.config.get('settings', 'hub_serial_no'),
+                "gtwtime": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                "orgid": 111111,
+                "primary": {
+                    "type": "raw",
+                    "value": [
+                        round(data['temperature'], 2),
+                        round(data['moisture'], 2),
+                        round(data['energy'], 2),
+                        round(data['brightness'], 2),
+                        round(data['conductivity'], 2)
+                    ]
                 }
             }
-            api.send_collected_data(jsn_data)
+            self.api.send_collected_data(jsn_data)
         self.plugin_active = False
 
     def display_devices(self) -> None:
@@ -68,33 +79,32 @@ class xiaomi(PluginInterface):
             self.data = {}
 
         async def connect_and_read(self):
-            client = BleakClient(self.mac_address)
+            
             try:
-                await client.connect()
-                logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+                async with BleakClient(self.mac_address) as client:
+                    logging.info(f"Connected to {self.mac_address} - {self.device_name}")
 
-                # Write to access characteristic
-                await client.write_gatt_char(ACCESS_CHAR_UUID, bytearray([0xA0, 0x1F]))
+                    # Write to access characteristic
+                    await client.write_gatt_char(ACCESS_CHAR_UUID, bytearray([0xA0, 0x1F]))
 
-                # Read data characteristic
-                data = await client.read_gatt_char(READ_DATA_UUID)
-                self.data['temperature'] = int.from_bytes(data[0:2], byteorder='little') / 10.0
-                self.data['brightness'] = int.from_bytes(data[3:7], byteorder='little')
-                self.data['moisture'] = data[7]
-                self.data['conductivity'] = int.from_bytes(data[8:10], byteorder='little')
+                    # Read data characteristic
+                    data = await client.read_gatt_char(READ_DATA_UUID)
+                    self.data['temperature'] = int.from_bytes(data[0:2], byteorder='little') / 10.0
+                    self.data['brightness'] = int.from_bytes(data[3:7], byteorder='little')
+                    self.data['moisture'] = data[7]
+                    self.data['conductivity'] = int.from_bytes(data[8:10], byteorder='little')
 
-                # Read battery characteristic
-                battery = await client.read_gatt_char(READ_BATTERY_UUID)
-                self.data['energy'] = battery[0]
-                self.firmware = battery[2:7].decode('utf-8')
+                    # Read battery characteristic
+                    battery = await client.read_gatt_char(READ_BATTERY_UUID)
+                    self.data['energy'] = battery[0]
+                    self.firmware = battery[2:7].decode('utf-8')
 
-                self.print_data()
+                    self.print_data()
             except KeyboardInterrupt:
                 return None
             except Exception as e:
-                pass
+                logging.error(f"Error reading data from {self.mac_address} - {self.device_name}: {e}")
             finally:
-                await client.disconnect()
                 logging.info(f"Disconnected from {self.mac_address} - {self.device_name}")
                 return self.data
 

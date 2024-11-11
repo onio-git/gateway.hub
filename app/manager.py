@@ -45,20 +45,30 @@ def ensure_hub_running():
 def is_wifi_connected():
     result = subprocess.run(['iwgetid', '-r'], stdout=subprocess.PIPE)
     ssid = result.stdout.decode().strip()
+    connection_status = subprocess.run(['ping', '-I', 'wlan0', '-c', '1', '8.8.8.8'], stdout=subprocess.PIPE)
+    if connection_status.returncode == 0:
+        return True
     return ssid != ''
 
 
 if __name__ == '__main__':
     try:
+        network_check_delay = 0
         while True:
             ensure_hub_running()
 
             if line.get_value() == 1 and not is_portal_running():
                 print("Starting portal...")
                 start_portal()
-            else:
-                print("No reset detected")
+            
             time.sleep(2)  
+
+            if network_check_delay == 30: # After 60 seconds, the script will check if the WiFi connection is established. If not, it will start the hotspot.
+                if not is_wifi_connected():
+                    print("No WiFi connection detected. Starting hotspot...")
+                    if not is_portal_running():
+                        start_portal()
+            network_check_delay += 1
 
     except Exception as e:
         print("Error in manager: ", e)

@@ -1,3 +1,5 @@
+
+
 import time
 import threading
 import importlib
@@ -10,17 +12,18 @@ from config.config import ConfigSettings
 from core.ble import BLEManager
 from core.backend import ApiBackend
 from core.flow import Flow
-
+from log.log import CloudLogger
 
 class Hub:
     def __init__(self, serial_no):
         self.config = ConfigSettings()
+        self.cloud_logger = CloudLogger()
         self.plugin_dir = "plugins"
         self.plugins = []
 
         self.serial = serial_no
-        self.serial_hash = md5(self.serial.encode()).hexdigest()  # Hash the serial number for security
-
+        self.serial_hash = md5(self.serial.encode()).hexdigest() # Hash the serial number for security
+        
         self.api = ApiBackend()
         self.ble = BLEManager()
         self.flow = Flow()
@@ -30,14 +33,17 @@ class Hub:
 
         # Load plugins
         # Comment out the plugins you don't want to load
-        # Will later be managed by API ()
-        # self.load_plugin("null") # Sensor emulator plugin
-        self.load_plugin("philips_hue")  # Philips hue experimental plugin
+        # Will later be managed by API
+
+        self.load_plugin("null") # Sensor emulator plugin
+        self.load_plugin("onio_ble") # ONiO BLE plugin
+        self.load_plugin("philips_hue") # Philips hue experimental plugin
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
+        self.load_plugin("sonos") # Sonos plugin
         # self.load_plugin("flic") # Flic plugin
 
     def startup(self):
-
+        
         # Disable this to avoid unnecessary geolocation requests and costs.
         # local_ap_list = self.wifi.scan_wifi_networks()
         # if local_ap_list is not None:
@@ -45,22 +51,27 @@ class Hub:
         #         logging.info("Successfully geolocated with Google API")
         #     else:
         #         logging.error("Failed to get location from Google API")
-        if self.api.get_token(self.serial_hash):
+
+            
+        if self.api.get_token(self.serial_hash): 
             logging.info("Successfully retrieved token from server")
 
-        if self.api.set_location():
+        if self.api.set_location(): 
             logging.info("Successfully updated hub location")
 
         if self.flow.set_flow(self.api.get_flow()):
             logging.info("Successfully retrieved flow")
 
         logging.info("Startup complete... Beginning main routine\n")
+        self.cloud_logger.add_log_line("SYSTEM", "Startup complete... Beginning main routine")
         return True
+    
 
     def loop(self, auto_collect, period=5):
 
         # Initial scan
         self.scan_for_devices()
+        plugins_last_executed = 0.0
 
         while True:
             try:
@@ -83,14 +94,17 @@ class Hub:
 
                 elif self.command == "":
                     # if auto_collect:
-                    logging.debug("Automatically executing plugins")
-                    self.execute_plugins()
-                    pass
-
+                    # Only execute plugins every 5 minutes
+                    if (time.time() - plugins_last_executed > 30) or (plugins_last_executed == 0.0):
+                        logging.debug("Automatically executing plugins")
+                        self.execute_plugins()
+                        plugins_last_executed = time.time()
+                        pass
+                
                 self.command = ""
                 time.sleep(period)
-                [self.command, self.meta_data] = self.api.ping_server(self.serial_hash)
-
+                self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
+                
 
 
             except KeyboardInterrupt:
@@ -114,7 +128,7 @@ class Hub:
             logging.error(f"Plugin not found: {plugin_name}")
             return
         plugin_class = getattr(module, plugin_name)
-        plugin = plugin_class()
+        plugin = plugin_class(api=self.api, flow=self.flow)
         self.plugins.append(plugin)
         logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
 
@@ -124,7 +138,8 @@ class Hub:
                 asyncio.run(self.ble.scan_by_plugin(plugin, timeout=10))
 
             elif plugin.protocol == 'WiFi':
-                pass
+                plugin.discover()
+
             elif plugin.protocol == 'Zigbee':
                 pass
             elif plugin.protocol == 'Zwave':
@@ -132,5 +147,5 @@ class Hub:
 
     def execute_plugins(self):
         for plugin in self.plugins:
-            thread = threading.Thread(target=plugin.execute, args=(self.api, self.command, self.meta_data))
+            thread = threading.Thread(target=plugin.execute)
             thread.start()

@@ -1,6 +1,8 @@
 import click
 import logging
-import os
+import os, sys
+import signal
+import time
 
 from config.config import ConfigSettings as config
 from core.hub import Hub
@@ -43,10 +45,13 @@ def get_hardware_id() -> str:
 def main(log_level, serial_number, auto_scan, auto_collect):
     setup_logging(log_level)
 
-    serial_number = get_hardware_id().capitalize() # Using hardware ID as serial number
+    if serial_number == '':
+        serial_number = get_hardware_id() # Using hardware ID as serial number
     if serial_number == None:
-        serial_number = serial_number if serial_number != '' else config().get('settings', 'hub_serial_no')
+        serial_number = config().get('settings', 'hub_serial_no')
         logging.error("Failed to get hardware ID - using default serial number: " + serial_number)
+    else:
+        config().set('settings', 'hub_serial_no', serial_number)
 
     logging.info("Starting Smart Hub with serial number: " + serial_number)
     hub = Hub(serial_number)
@@ -54,8 +59,22 @@ def main(log_level, serial_number, auto_scan, auto_collect):
     if auto_scan:
         hub.command = "scan_devices"
 
+    # delay before starting the loop
+    startup_delay = 15
+    # ping google
+    res = os.system("ping -c 1 google.com")
+    if res == 0:
+        startup_delay = 0
+    else:
+        logging.info(f"Startup delayed to allow for network connection to be established")
+
+    while startup_delay > 0:
+        logging.info(f"Starting in {startup_delay} seconds...")
+        time.sleep(1)
+        startup_delay -= 1
+
     if hub.startup():
-        hub.loop(auto_collect, period=20)
+        hub.loop(auto_collect, period=5)
     else:
         logging.error("Failed to start Smart Hub.")
 
@@ -63,6 +82,8 @@ def main(log_level, serial_number, auto_scan, auto_collect):
 
 
     logging.info("Exiting Smart Hub... End of Program")
+    # KeyboardInterrupt here
+    os._exit(0)
     return
 
 

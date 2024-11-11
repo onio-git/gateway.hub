@@ -1,3 +1,6 @@
+
+
+
 import logging
 from bleak import BleakScanner, BleakClient
 
@@ -11,7 +14,7 @@ class BLEManager:
         logging.info("Scanning for devices in plugin: " + plugin.__class__.__name__ + "...")
         search = plugin.SearchableDevice()
         logging.info(f"Filtering by: {search.scan_filter_method} - {search.scan_filter}")
-        logging.info(f"scan filter method: {search.scan_filter_method}")
+
         if search.scan_filter_method == 'emulator':
             logging.info("Adding emulators:")
             self.list_devices(plugin)
@@ -35,12 +38,13 @@ class BLEManager:
             return False
 
         results = await self.scanner.discover(timeout=timeout, return_adv=True)
-        logging.info(f"Found {len(results)} devices.")
         for _, result in results.items():
             logging.debug(result)
             if filter_func(result):
                 new_device = plugin.Device(result[0].address, result[0].name)
                 plugin.devices[result[0].address] = new_device
+                plugin.associate_flow_node(new_device)
+
         self.list_devices(plugin)
         return
 

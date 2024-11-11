@@ -1,3 +1,4 @@
+
 from core.backend import ApiBackend
 import logging
 import json
@@ -31,9 +32,6 @@ class Flow():
             self.is_leaf = False
             self.function = node_function
 
-        def run(self):
-            logging.info("Running node: " + self.node_name)
-            self.function()
 
     class Vertex():
         def __init__(self, parent, output_nr, child, input_nr):
@@ -64,23 +62,22 @@ class Flow():
             for vertex in node.outputs:
                 logging.info("      Child: " + str(vertex.child) + " Input: " + str(vertex.input_nr))
 
+
     def set_flow(self, flow_json) -> bool:
-        logging.info(flow_json)
-        # if not flow_json:
-        #     logging.error("Flow is empty, skipping update")
-        #     return False
-        # if flow_json.get('md5_out') == self.md5:
-        #     logging.debug("Flow is the same, skipping update")
-        #     return False
-        # self.flow_json = flow_json.get('flow')
-        # self.md5 = flow_json.get('md5_out')
-        # self.creation_date = flow_json.get('creation_date')
-        # self.id = flow_json.get('id')
-        # self.name = flow_json.get('name')
-        # self.parse_flow()
-        # logging.info("Flow updated")
-        # self.print_flow()
-        # self.execute_flow()
+        if not flow_json:
+            logging.error("Flow is empty, skipping update")
+            return False
+        if flow_json.get('md5_out') == self.md5:
+            logging.debug("Flow is the same, skipping update")
+            return False
+        self.flow_json = flow_json.get('flow')
+        self.md5 = flow_json.get('md5_out')
+        self.creation_date = flow_json.get('creation_date')
+        self.id = flow_json.get('id')
+        self.name = flow_json.get('name')
+        self.parse_flow()
+        logging.info("Flow updated")
+        self.print_flow()
         return True
 
     def parse_flow(self) -> None:
@@ -122,58 +119,69 @@ class Flow():
 
             self.flow_table.append(flow_node)
 
-    def execute_node(self, node) -> None:
+
+    async def execute_node(self, node) -> None:
         if not node:
             logging.error("Node is None, skipping execution")
             return
-        node.function()
+
+        if node.function is None:
+            logging.error(f"Node {node.node_name} has no function, skipping execution")
+        else:
+            await node.function(data=node.node_data)
         for vertex in node.outputs:
             child_node = self.get_node_by_id(vertex.child)
-            self.execute_node(child_node)
-
+            if child_node:
+                child_node.node_data.update(node.node_data)
+                await self.execute_node(child_node)
+        
+    
     def get_node_by_id(self, node_id) -> FlowNode:
         for node in self.flow_table:
             if node.node_id == node_id:
                 return node
         return None
 
+
     def execute_flow(self) -> None:
-        # for node in self.flow_table:
-        #     if node.is_root:
-        #         self.execute_node(node)
+        for node in self.flow_table:
+            if node.is_root:
+                self.execute_node(node)
         print("Flow executed")
         return
 
-    # standard_functions = {
-    #     "loop_event": self.loop_event,
-    #     "clock_event": self.clock_event,
-    #     "date_event": self.date_event,
-    #     "sun_rise_event": self.sun_rise_event,
-    #     "sun_set_event": self.sun_set_event,
-    #     "the_day_is_between": self.the_day_is_between,
-    #     "the_time_is_between": self.the_time_is_between,
-    #     "the_day_is": self.the_day_is,
-    #     "delay": self.delay,
-    #     "and": self.and_operator,
-    #     "or": self.or_operator,
-    #     "not": self.not_operator,
-    #     "message": self.message
-    # }
 
-    # def loop_event(self, unit: str, value: int) -> None:
+    async def receive_device_data_to_flow(self, device_id, data) -> None:
+        logging.info(f"################################################")
+        for node in self.flow_table:
+            if node.node_data.get('mac_address') == device_id:
+                node.node_data.update(data)
+                logging.info(f"Received data for node: {node.node_name} - {data}")
+                await self.execute_node(node)
+                return
+        return
 
-    #     def timer_function():
-    #         if unit == "seconds":
-    #             time.sleep(value)
-    #         else if unit == "minutes":
-    #             time.sleep(value * 60)
-    #         else if unit == "hours":
-    #             time.sleep(value * 3600)
-    #         else if unit == "days":
-    #             time.sleep(value * 86400)
-    #         else if unit == "months":
-    #             time.sleep(value * 2592000)
-    #         else:
-    #             raise ValueError(f"Unsupported time unit: {unit}")
+
+    def loop_event(self, data) -> None:
+        logging.info(f"Loop event: {data}")
+        pass
+
+    standard_functions = {
+        "loop_event": loop_event,
+        # "clock_event": clock_event,
+        # "date_event": date_event,
+        # "sun_rise_event": sun_rise_event,
+        # "sun_set_event": sun_set_event,
+        # "the_day_is_between": the_day_is_between,
+        # "the_time_is_between": the_time_is_between,
+        # "the_day_is": the_day_is,
+        # "delay": delay,
+        # "and": and_operator,
+        # "or": or_operator,
+        # "not": not_operator,
+        # "message": message
+    }
+
 
     #     threading.Thread(target=timer_function).start()
+        

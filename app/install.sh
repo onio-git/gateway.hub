@@ -14,7 +14,7 @@ echo "Updating git repository..."
 REPO_DIR="/opt/gateway.hub"
 
 if [ -d "$REPO_DIR/.git" ]; then
-    echo "Repository already exists. Are you sure you want to update it? (y/n) This will discard any local changes such as seral number."
+    echo "Repository already exists. Are you sure you want to update it? (y/n)"
     read -r response
     if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         echo "Exiting..."

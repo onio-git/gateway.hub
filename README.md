@@ -94,9 +94,13 @@ Once you have successfully SSH'd into the Pi:
 
 Now the hub should authenticate and respond to scan commands if the serial number is properly registered in the backend. The hub runs emulators by default. Add the devices by scanning and adding the results in the frontend.
 
-15. **Check the local admin-server**
+15. **Check the local admin-server at onio-hub.local**
     If the hub is connected to ethernet, the admin-server should be vissible from any browser on the LAN.
     Go to "onio-hub.local" to see it.
+    Check the server logs with this command: 
+    ```bash
+    sudo journalctl -u SmarthubServer.service -f
+    ```
 
 ---
 
