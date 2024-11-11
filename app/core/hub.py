@@ -92,7 +92,7 @@ class Hub:
                 elif self.command == "":
                     # if auto_collect:
                     # Only execute plugins every 5 minutes
-                    if (time.time() - plugins_last_executed > 300) or (plugins_last_executed == 0.0):
+                    if (time.time() - plugins_last_executed > 30) or (plugins_last_executed == 0.0):
                         logging.debug("Automatically executing plugins")
                         self.execute_plugins()
                         plugins_last_executed = time.time()

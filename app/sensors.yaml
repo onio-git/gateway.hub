@@ -46,11 +46,18 @@ sensors:
           time_unit: minutes
           noise: 0.5
       humidity:
-        pattern: sawtooth
+        # pattern: sawtooth
+        # params:
+        #   min_value: 30
+        #   max_value: 90
+        #   period: 10  # in minutes
+        #   time_unit: minutes
+        #   noise: 1
+        pattern: square
         params:
-          min_value: 30
-          max_value: 90
-          period: 10  # in minutes
+          min_value: 50
+          max_value: 70
+          period: 2  # in minutes
           time_unit: minutes
           noise: 1
     interval: 10  # in seconds

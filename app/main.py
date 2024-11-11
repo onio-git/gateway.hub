@@ -1,6 +1,7 @@
 import click
 import logging
-import os
+import os, sys
+import signal
 import time
 
 from config.config import ConfigSettings as config
@@ -81,6 +82,8 @@ def main(log_level, serial_number, auto_scan, auto_collect):
 
 
     logging.info("Exiting Smart Hub... End of Program")
+    # KeyboardInterrupt here
+    os._exit(0)
     return
 
 
