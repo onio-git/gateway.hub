@@ -18,6 +18,7 @@ class sonos(PluginInterface):
         self.config = config()
         self.api = api
         self.flow = flow
+        self.active = False
 
         # SSDP Discovery constants
         self.MSEARCH_HOST = "239.255.255.250"

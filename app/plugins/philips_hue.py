@@ -51,16 +51,16 @@ class philips_hue(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
         self.devices = {}
-        self.plugin_active = False
+        self.active = False
         self.api = api
         self.flow = flow
 
     def execute(self) -> None:
-        if self.plugin_active:
+        if self.active:
             return
-        self.plugin_active = True
+        self.active = True
         asyncio.run(self.run_devices())
-        self.plugin_active = False
+        self.active = False
 
     def associate_flow_node(self, device):
             # Check each node in the flow table

@@ -19,7 +19,7 @@ class xiaomi(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
         self.devices = {}
-        self.plugin_active = False
+        self.active = False
         self.api = api
         self.flow = flow
         self.config = config()
@@ -28,9 +28,9 @@ class xiaomi(PluginInterface):
         pass
 
     def execute(self) -> None:
-        if self.plugin_active: # prevent multiple instances of the plugin from running at the same time
+        if self.active: # prevent multiple instances of the plugin from running at the same time
             return
-        self.plugin_active = True
+        self.active = True
         for _, device in self.devices.items():
             data = asyncio.run(device.connect_and_read())
             if not data:
@@ -53,7 +53,7 @@ class xiaomi(PluginInterface):
                 }
             }
             self.api.send_collected_data(jsn_data)
-        self.plugin_active = False
+        self.active = False
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():

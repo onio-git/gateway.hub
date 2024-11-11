@@ -71,7 +71,6 @@ class Hub:
 
         # Initial scan
         self.scan_for_devices()
-        plugins_last_executed = 0.0
 
         while True:
             try:                
@@ -91,12 +90,10 @@ class Hub:
 
                 elif self.command == "":
                     # if auto_collect:
-                    # Only execute plugins every 5 minutes
-                    if (time.time() - plugins_last_executed > 30) or (plugins_last_executed == 0.0):
-                        logging.debug("Automatically executing plugins")
-                        self.execute_plugins()
-                        plugins_last_executed = time.time()
-                        pass
+                    logging.debug("Automatically executing plugins")
+                    self.execute_plugins()
+                    pass
+
                 
                 self.command = ""
                 time.sleep(period)
@@ -150,5 +147,7 @@ class Hub:
 
     def execute_plugins(self):
         for plugin in self.plugins:
+            if plugin.active:
+                continue
             thread = threading.Thread(target=plugin.execute)
             thread.start()

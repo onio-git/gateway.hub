@@ -9,6 +9,7 @@ import random
 from hashlib import md5
 import yaml
 import os
+import time
 
 class null(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
@@ -17,6 +18,7 @@ class null(PluginInterface):
         self.config = config()
         self.api = api
         self.flow = flow
+        self.active = False
 
         # Read the sensor configuration file path from the main config
         config_file_path = self.config.get('settings', 'sensor_config_file')
@@ -33,44 +35,51 @@ class null(PluginInterface):
         pass
 
     def execute(self) -> None:
-        for _, device in self.devices.items():
-            current_time = datetime.now()
-            if device.last_execution_time is None or \
-               (current_time - device.last_execution_time).total_seconds() >= device.interval:
-                logging.info(f"Executing for device {device.device_name}")
-                device.generate_emulated_data()
-                device.last_execution_time = current_time
-                logging.debug(f"Data from {device.device_name}: {device.data}")
-                try:
-                    jsn_data = {
-                        "devid": device.mac_address,
-                        "gtwid": self.config.get('settings', 'hub_serial_no'),
-                        "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
-                        "orgid": 111111,
-                        "primary": {
-                            "type": "raw",
-                            "value": [
-                                round(device.data['data']['temperature'], 2),
-                                round(device.data['data']['humidity'], 2),
-                                round(device.data['data']['energy'], 2),
-                                round(device.data['data']['brightness'], 2),
-                                round(device.data['data']['conductivity'], 2)
-                            ]
-                        }
-                    }
-                    self.api.send_collected_data(jsn_data)
-                except Exception as e:
-                    logging.error(f"Error sending data to API: {str(e)}")
+        if not self.active:
+            logging.info("Starting null plugin")
+            self.active = True
+            while True:
+                for _, device in self.devices.items():
+                    current_time = datetime.now()
+                    if device.last_execution_time is None or \
+                    (current_time - device.last_execution_time).total_seconds() >= device.interval:
+                        device.generate_emulated_data()
+                        device.last_execution_time = current_time
+                        logging.debug(f"Data from {device.device_name}: {device.data}")
+                        try:
+                            jsn_data = {
+                                "devid": device.mac_address,
+                                "gtwid": self.config.get('settings', 'hub_serial_no'),
+                                "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
+                                "orgid": 111111,
+                                "primary": {
+                                    "type": "raw",
+                                    "value": [
+                                        round(device.data['data']['temperature'], 2),
+                                        round(device.data['data']['humidity'], 2),
+                                        round(device.data['data']['energy'], 2),
+                                        round(device.data['data']['brightness'], 2),
+                                        round(device.data['data']['conductivity'], 2)
+                                    ]
+                                }
+                            }
+                            self.api.send_collected_data(jsn_data)
+                        except Exception as e:
+                            logging.error(f"Error sending data to API: {str(e)}")
+                time.sleep(1)
+
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
+
 
     class SearchableDevice(PluginInterface.SearchableDeviceInterface):
         def __init__(self):
             self.protocol = "BLE"
             self.scan_filter_method = "emulator"
             self.scan_filter = "none"
+
 
     class Device(PluginInterface.DeviceInterface):
         def __init__(self, sensor_info):
@@ -105,6 +114,7 @@ class null(PluginInterface):
                 }
             }
 
+
         def generate_emulated_data(self) -> None:
             current_time = datetime.now()
             for data_point, data_info in self.data_patterns.items():
@@ -113,6 +123,7 @@ class null(PluginInterface):
                 value = self.generate_value(pattern, params, current_time)
                 self.data['data'][data_point] = value
             self.data['timestamp'] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
+
 
         def generate_value(self, pattern, params, current_time):
             time_unit = params.get('time_unit', 'seconds')
