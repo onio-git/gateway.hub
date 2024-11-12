@@ -7,6 +7,7 @@ import asyncio
 import pexpect
 import sys
 import random
+import time
 
 # Configure Logging
 logging.basicConfig(
@@ -52,13 +53,18 @@ class philips_hue(PluginInterface):
         self.protocol = "BLE"
         self.devices = {}
         self.active = False
+        self.last_execution = None
+        self.fetch_interval = 60  # in seconds
         self.api = api
         self.flow = flow
 
     def execute(self) -> None:
         if self.active:
             return
+        if self.last_execution is not None and time.time() - self.last_execution < self.fetch_interval:
+            return
         self.active = True
+        self.last_execution = time.time()
         asyncio.run(self.run_devices())
         self.active = False
 
@@ -72,10 +78,6 @@ class philips_hue(PluginInterface):
 
     async def run_devices(self):
         for _, device in self.devices.items():
-            # Check if the device is already connected
-            # async with BleakClient(device.mac_address) as client:
-            #     if client.is_connected:
-            #         logging.info(f"Device {device.mac_address} is already connected.")
 
             # If not connected, attempt to connect and read
             if device.connection_attempts >= 3:
