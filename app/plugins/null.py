@@ -11,6 +11,10 @@ import yaml
 import os
 import time
 
+from typing import Dict, Any
+import threading
+from queue import Queue, Empty
+
 class null(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
@@ -19,6 +23,9 @@ class null(PluginInterface):
         self.api = api
         self.flow = flow
         self.active = False
+
+        self.device_queue = Queue()
+        self.workers = []
 
         # Read the sensor configuration file path from the main config
         config_file_path = self.config.get('settings', 'sensor_config_file')
@@ -34,39 +41,148 @@ class null(PluginInterface):
     def associate_flow_node(self, device):
         pass
 
+    # def execute(self) -> None:
+    #     if not self.active:
+    #         logging.info("Starting null plugin")
+    #         self.active = True
+    #         while True:
+    #             for _, device in self.devices.items():
+    #                 current_time = datetime.now()
+    #                 if device.last_execution_time is None or \
+    #                 (current_time - device.last_execution_time).total_seconds() >= device.interval:
+    #                     device.generate_emulated_data()
+    #                     device.last_execution_time = current_time
+    #                     logging.debug(f"Data from {device.device_name}: {device.data}")
+    #                     try:
+    #                         jsn_data = {
+    #                             "devid": device.mac_address,
+    #                             "gtwid": self.config.get('settings', 'hub_serial_no'),
+    #                             "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
+    #                             "orgid": 111111,
+    #                             "primary": {
+    #                                 "type": "raw",
+    #                                 "value": [
+    #                                     round(device.data['data']['temperature'], 2),
+    #                                     round(device.data['data']['humidity'], 2),
+    #                                     round(device.data['data']['energy'], 2),
+    #                                     round(device.data['data']['brightness'], 2),
+    #                                     round(device.data['data']['conductivity'], 2)
+    #                                 ]
+    #                             }
+    #                         }
+    #                         self.api.send_collected_data(jsn_data)
+    #                     except Exception as e:
+    #                         logging.error(f"Error sending data to API: {str(e)}")
+    #             time.sleep(1)
+
+    def queue_worker(self, queue: Queue) -> None:
+        """Worker thread that processes devices from the queue"""
+        while self.active:
+            try:
+                device, current_time = queue.get(timeout=1.0)
+                
+                try:
+                    device.generate_emulated_data()
+                    device.last_execution_time = current_time
+                    
+                    jsn_data = self.prepare_json_data(device, current_time)
+                    
+                    self.api.send_collected_data(jsn_data)
+                    logging.debug(f"Data from {device.device_name}: {device.data}")
+                    
+                except Exception as e:
+                    logging.error(f"Error processing device {device.device_name}: {str(e)}")
+                
+                finally:
+                    queue.task_done()
+                    
+            except Empty:
+                continue
+
+            except Exception as e:
+                logging.error(f"Worker thread error: {str(e)}")
+                time.sleep(1)  # Prevent tight loop in case of repeated errors
+
+
     def execute(self) -> None:
+        """Main execution loop using queue-based processing"""
         if not self.active:
-            logging.info("Starting null plugin")
+            logging.info("Starting null plugin with queue-based processing")
             self.active = True
-            while True:
-                for _, device in self.devices.items():
+            
+            # Create worker threads
+            num_workers = min(4, len(self.devices))
+            self.workers = []
+            
+            # Start worker threads
+            for i in range(num_workers):
+                worker = threading.Thread(
+                    target=self.queue_worker,
+                    args=(self.device_queue,),
+                    name=f"DeviceWorker-{i}"
+                )
+                worker.daemon = True
+                worker.start()
+                self.workers.append(worker)
+            
+            logging.info(f"Started {num_workers} worker threads")
+            
+            # Main loop
+            try:
+                while self.active:
                     current_time = datetime.now()
-                    if device.last_execution_time is None or \
-                    (current_time - device.last_execution_time).total_seconds() >= device.interval:
-                        device.generate_emulated_data()
-                        device.last_execution_time = current_time
-                        logging.debug(f"Data from {device.device_name}: {device.data}")
-                        try:
-                            jsn_data = {
-                                "devid": device.mac_address,
-                                "gtwid": self.config.get('settings', 'hub_serial_no'),
-                                "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
-                                "orgid": 111111,
-                                "primary": {
-                                    "type": "raw",
-                                    "value": [
-                                        round(device.data['data']['temperature'], 2),
-                                        round(device.data['data']['humidity'], 2),
-                                        round(device.data['data']['energy'], 2),
-                                        round(device.data['data']['brightness'], 2),
-                                        round(device.data['data']['conductivity'], 2)
-                                    ]
-                                }
-                            }
-                            self.api.send_collected_data(jsn_data)
-                        except Exception as e:
-                            logging.error(f"Error sending data to API: {str(e)}")
-                time.sleep(1)
+                    
+                    # Add devices that need processing to the queue
+                    for device in self.devices.values():
+                        if device.last_execution_time is None or \
+                        (current_time - device.last_execution_time).total_seconds() >= device.interval:
+                            self.device_queue.put((device, current_time))
+                    
+                    time.sleep(1)
+                    
+            except Exception as e:
+                logging.error(f"Main loop error: {str(e)}")
+                self.active = False
+                
+            finally:
+                # Cleanup when stopping
+                self.stop()
+
+
+    def stop(self) -> None:
+        """Stop the plugin and clean up resources"""
+        logging.info("Stopping null plugin")
+        self.active = False
+        
+        # Wait for queue to be empty
+        self.device_queue.join()
+        
+        # Stop worker threads
+        for worker in self.workers:
+            if worker.is_alive():
+                worker.join(timeout=5.0)
+        
+        self.workers = []
+        logging.info("Null plugin stopped")
+
+
+    def prepare_json_data(self, device: Any, current_time: datetime) -> Dict:
+        return {
+            "devid": device.mac_address,
+            "gtwid": self.config.get('settings', 'hub_serial_no'),
+            "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "orgid": 111111,
+            "primary": {
+                "type": "raw",
+                "value": [
+                    round(device.data['data']['temperature'], 2),
+                    round(device.data['data']['humidity'], 2),
+                    round(device.data['data']['energy'], 2),
+                    round(device.data['data']['brightness'], 2),
+                    round(device.data['data']['conductivity'], 2)
+                ]
+            }
+        }
 
 
     def display_devices(self) -> None:
@@ -175,9 +291,5 @@ class null(PluginInterface):
                     value = max_value - (max_value - min_value) * fraction
             else:
                 value = 0  # Default value for unknown patterns
-
-            # Add random noise
-            if noise > 0:
-                value += random.uniform(-noise, noise)
 
             return value

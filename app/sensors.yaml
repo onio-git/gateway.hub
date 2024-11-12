@@ -12,7 +12,6 @@ sensors:
   #         amplitude: 5
   #         period: 60  
   #         time_unit: minutes
-  #         noise: 1
   #   interval: 10  # in seconds
 
   # - name: sensor22
@@ -28,7 +27,6 @@ sensors:
   #         max_value: 70
   #         period: 2 
   #         time_unit: minutes
-  #         noise: 2
   #   interval: 10  # in seconds
 
   - name: sensor33
@@ -44,7 +42,6 @@ sensors:
           amplitude: 10
           period: 20  
           time_unit: minutes
-          noise: 0.5
       humidity:
         # pattern: sawtooth
         # params:
@@ -52,14 +49,12 @@ sensors:
         #   max_value: 90
         #   period: 10  
         #   time_unit: minutes
-        #   noise: 1
         pattern: square
         params:
           min_value: 50
           max_value: 70
-          period: 2 
+          period: 10 
           time_unit: minutes
-          noise: 1
     interval: 20  # in seconds
 
   - name: sensor44
@@ -73,9 +68,8 @@ sensors:
         params:
           offset: 60
           amplitude: 30
-          period: 10  
+          period: 7  
           time_unit: minutes
-          noise: 0.5
       humidity:
         pattern: sawtooth
         params:
@@ -83,5 +77,4 @@ sensors:
           max_value: 90
           period: 10  
           time_unit: minutes
-          noise: 1
     interval: 10   # in seconds

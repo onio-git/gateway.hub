@@ -152,6 +152,7 @@ class philips_hue(PluginInterface):
 
                     self.is_connected = True
                     logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+                    self.connection_attempts = 0  # Reset connection attempts
 
                     # Perform operations
                     state = await self.read_light_state(client)
