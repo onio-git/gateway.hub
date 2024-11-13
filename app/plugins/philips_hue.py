@@ -7,6 +7,7 @@ import asyncio
 import pexpect
 import sys
 import random
+import time
 
 # Configure Logging
 logging.basicConfig(
@@ -51,7 +52,9 @@ class philips_hue(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
         self.devices = {}
-        self.plugin_active = False
+        self.active = False
+        self.last_execution = None
+        self.fetch_interval = 60  # in seconds
         self.api = api
         self.flow = flow
         self.command = ""
@@ -60,11 +63,14 @@ class philips_hue(PluginInterface):
     def execute(self, command: str = '', meta_data: dict = {}) -> None:
         self.command = command
         self.meta_data = meta_data
-        if self.plugin_active:
+        if self.active:
             return
-        self.plugin_active = True
+        if self.last_execution is not None and time.time() - self.last_execution < self.fetch_interval:
+            return
+        self.active = True
+        self.last_execution = time.time()
         asyncio.run(self.run_devices())
-        self.plugin_active = False
+        self.active = False
 
     def associate_flow_node(self, device):
             # Check each node in the flow table
@@ -76,11 +82,7 @@ class philips_hue(PluginInterface):
 
     async def run_devices(self):
         for _, device in self.devices.items():
-            # Check if the device is already connected
-            # async with BleakClient(device.mac_address) as client:
-            #     if client.is_connected:
-            #         logging.info(f"Device {device.mac_address} is already connected.")
-            await device.update_attributes(system_command=self.command, meta_data=self.meta_data)
+
             # If not connected, attempt to connect and read
             if device.connection_attempts >= 3:
                 logging.error(f"Exceeded connection attempts for {device.mac_address} - {device.device_name}")
@@ -161,7 +163,6 @@ class philips_hue(PluginInterface):
 
         async def connect_and_read(self) -> dict:
             try:
-                logging.info(f"Connecting to {self.mac_address} - {self.device_name}...")
                 # Step 1: Pair and Trust the Device
                 if not self.is_paired or not self.is_trusted:
                     logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
@@ -184,6 +185,7 @@ class philips_hue(PluginInterface):
 
                     self.is_connected = True
                     logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+                    self.connection_attempts = 0  # Reset connection attempts
 
                     # Perform operations
                     state = await self.read_light_state(client)

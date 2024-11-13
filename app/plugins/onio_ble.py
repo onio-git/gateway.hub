@@ -11,7 +11,7 @@ class onio_ble(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
         self.devices = {}
-        self.plugin_active = False
+        self.active = False
         self.scanner = None
         self.scan_thread = None
         self.stop_event = threading.Event()
@@ -34,10 +34,10 @@ class onio_ble(PluginInterface):
 
     def execute(self) -> None:
         """Start continuous scanning if not already active"""
-        if self.plugin_active:
+        if self.active:
             return
         
-        self.plugin_active = True
+        self.active = True
         self.stop_event.clear()
         self.scan_thread = threading.Thread(target=lambda: asyncio.run(self.scanning_loop()))
         self.scan_thread.start()
@@ -55,7 +55,7 @@ class onio_ble(PluginInterface):
                 await asyncio.sleep(0.5)  # Wait before retrying
 
         logging.info("ONiO BLE scanning loop stopped")
-        self.plugin_active = False
+        self.active = False
 
     async def scan_cycle(self):
         """Single scan cycle with proper cleanup"""
@@ -186,7 +186,7 @@ class onio_ble(PluginInterface):
                 self.scan_thread.join(timeout=2)
             except Exception as e:
                 logging.error(f"Error stopping scan thread: {e}")
-        self.plugin_active = False
+        self.active = False
 
     def display_devices(self) -> None:
         """Display discovered devices"""

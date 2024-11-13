@@ -10,9 +10,8 @@ sensors:
   #       params:
   #         offset: 25
   #         amplitude: 5
-  #         period: 60  # in minutes
+  #         period: 60  
   #         time_unit: minutes
-  #         noise: 1
   #   interval: 10  # in seconds
 
   # - name: sensor22
@@ -26,9 +25,8 @@ sensors:
   #       params:
   #         min_value: 50
   #         max_value: 70
-  #         period: 2  # in minutes
+  #         period: 2 
   #         time_unit: minutes
-  #         noise: 2
   #   interval: 10  # in seconds
 
   - name: sensor33
@@ -42,25 +40,22 @@ sensors:
         params:
           offset: 20
           amplitude: 10
-          period: 20  # in minutes
+          period: 20  
           time_unit: minutes
-          noise: 0.5
       humidity:
         # pattern: sawtooth
         # params:
         #   min_value: 30
         #   max_value: 90
-        #   period: 10  # in minutes
+        #   period: 10  
         #   time_unit: minutes
-        #   noise: 1
         pattern: square
         params:
           min_value: 50
           max_value: 70
-          period: 2  # in minutes
+          period: 10 
           time_unit: minutes
-          noise: 1
-    interval: 10  # in seconds
+    interval: 20  # in seconds
 
   - name: sensor44
     address: b2:1e:60:f2:70:f0 # Must be unique for each sensor, for your hub
@@ -73,15 +68,13 @@ sensors:
         params:
           offset: 60
           amplitude: 30
-          period: 10  # in minutes
+          period: 7  
           time_unit: minutes
-          noise: 0.5
       humidity:
         pattern: sawtooth
         params:
           min_value: 30
           max_value: 90
-          period: 10  # in minutes
+          period: 10  
           time_unit: minutes
-          noise: 1
-    interval: 10  # in seconds
+    interval: 10   # in seconds
