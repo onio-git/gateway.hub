@@ -60,7 +60,7 @@ def main(log_level, serial_number, auto_scan, auto_collect):
         hub.command = "scan_devices"
 
     # delay before starting the loop
-    startup_delay = 15
+    startup_delay = 3
     # ping google
     res = os.system("ping -c 1 google.com")
     if res == 0:

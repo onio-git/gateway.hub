@@ -32,7 +32,7 @@ class null(PluginInterface):
     def associate_flow_node(self, device):
         pass
 
-    def execute(self) -> None:
+    def execute(self, command: str = '', meta_data: dict = {}) -> None:
         for _, device in self.devices.items():
             current_time = datetime.now()
             if device.last_execution_time is None or \
