@@ -41,6 +41,7 @@ class null(PluginInterface):
     def associate_flow_node(self, device):
         pass
 
+    # Old execute method without queue-based processing
     # def execute(self) -> None:
     #     if not self.active:
     #         logging.info("Starting null plugin")
@@ -104,6 +105,7 @@ class null(PluginInterface):
                 time.sleep(1)  # Prevent tight loop in case of repeated errors
 
 
+    # New execute method with queue-based processing
     def execute(self) -> None:
         """Main execution loop using queue-based processing"""
         if not self.active:
@@ -130,7 +132,7 @@ class null(PluginInterface):
             # Main loop
             try:
                 while self.active:
-                    current_time = datetime.now()
+                    current_time = datetime.now(tz=None)
                     
                     # Add devices that need processing to the queue
                     for device in self.devices.values():
@@ -170,7 +172,7 @@ class null(PluginInterface):
         return {
             "devid": device.mac_address,
             "gtwid": self.config.get('settings', 'hub_serial_no'),
-            "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "gtwtime": current_time.isoformat(),
             "orgid": 111111,
             "primary": {
                 "type": "raw",
