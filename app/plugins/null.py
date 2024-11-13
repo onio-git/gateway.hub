@@ -1,7 +1,7 @@
 import logging
 from core.plugin_interface import PluginInterface
 from config.config import ConfigSettings as config
-from datetime import datetime
+from datetime import datetime, timezone
 from math import sin, cos, pi
 from core.backend import ApiBackend
 from core.flow import Flow
@@ -14,6 +14,7 @@ import time
 from typing import Dict, Any
 import threading
 from queue import Queue, Empty
+
 
 class null(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
@@ -103,8 +104,8 @@ class null(PluginInterface):
                 logging.error(f"Worker thread error: {str(e)}")
                 time.sleep(1)  # Prevent tight loop in case of repeated errors
 
+    def execute(self, command: str = '', meta_data: dict = {}) -> None:
 
-    def execute(self) -> None:
         """Main execution loop using queue-based processing"""
         if not self.active:
             logging.info("Starting null plugin with queue-based processing")
@@ -130,12 +131,14 @@ class null(PluginInterface):
             # Main loop
             try:
                 while self.active:
-                    current_time = datetime.now()
+                    current_time = datetime.now(timezone.utc)
+
+                    # logging.info(datetime.now(timezone.utc))
 
                     # Add devices that need processing to the queue
                     for device in self.devices.values():
                         if device.last_execution_time is None or \
-                        (current_time - device.last_execution_time).total_seconds() >= device.interval:
+                                (current_time - device.last_execution_time).total_seconds() >= device.interval:
                             self.device_queue.put((device, current_time))
 
                     time.sleep(1)
@@ -147,7 +150,6 @@ class null(PluginInterface):
             finally:
                 # Cleanup when stopping
                 self.stop()
-
 
     def stop(self) -> None:
         """Stop the plugin and clean up resources"""
@@ -165,12 +167,11 @@ class null(PluginInterface):
         self.workers = []
         logging.info("Null plugin stopped")
 
-
     def prepare_json_data(self, device: Any, current_time: datetime) -> Dict:
         return {
             "devid": device.mac_address,
             "gtwid": self.config.get('settings', 'hub_serial_no'),
-            "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "gtwtime": current_time.isoformat(),
             "orgid": 111111,
             "primary": {
                 "type": "raw",
@@ -184,18 +185,15 @@ class null(PluginInterface):
             }
         }
 
-
     def display_devices(self) -> None:
         for id, device in self.devices.items():
             logging.info(f"  {id} - {device.device_name} - {device.device_description}")
-
 
     class SearchableDevice(PluginInterface.SearchableDeviceInterface):
         def __init__(self):
             self.protocol = "BLE"
             self.scan_filter_method = "emulator"
             self.scan_filter = "none"
-
 
     class Device(PluginInterface.DeviceInterface):
         def __init__(self, sensor_info):
@@ -230,7 +228,6 @@ class null(PluginInterface):
                 }
             }
 
-
         def generate_emulated_data(self) -> None:
             current_time = datetime.now()
             for data_point, data_info in self.data_patterns.items():
@@ -239,7 +236,6 @@ class null(PluginInterface):
                 value = self.generate_value(pattern, params, current_time)
                 self.data['data'][data_point] = value
             self.data['timestamp'] = current_time.strftime("%Y-%m-%dT%H:%M:%S")
-
 
         def generate_value(self, pattern, params, current_time):
             time_unit = params.get('time_unit', 'seconds')
