@@ -42,6 +42,7 @@ class null(PluginInterface):
     def associate_flow_node(self, device):
         pass
 
+    # Old execute method without queue-based processing
     # def execute(self) -> None:
     #     if not self.active:
     #         logging.info("Starting null plugin")
@@ -104,8 +105,8 @@ class null(PluginInterface):
                 logging.error(f"Worker thread error: {str(e)}")
                 time.sleep(1)  # Prevent tight loop in case of repeated errors
 
+    # New execute method with queue-based processing
     def execute(self, command: str = '', meta_data: dict = {}) -> None:
-
         """Main execution loop using queue-based processing"""
         if not self.active:
             logging.info("Starting null plugin with queue-based processing")
@@ -131,10 +132,8 @@ class null(PluginInterface):
             # Main loop
             try:
                 while self.active:
-                    current_time = datetime.now(timezone.utc)
-
-                    # logging.info(datetime.now(timezone.utc))
-
+                    current_time = datetime.now(tz=None)
+                    
                     # Add devices that need processing to the queue
                     for device in self.devices.values():
                         if device.last_execution_time is None or \

@@ -6,6 +6,7 @@ from core.flow import Flow
 import asyncio
 from bleak import BleakClient
 from datetime import datetime
+import time
 
 # Xiaomi service and characteristic UUIDs
 SERVIDE_UUID = "00001204-0000-1000-8000-00805f9b34fb"
@@ -39,7 +40,7 @@ class xiaomi(PluginInterface):
             jsn_data = {
                 "devid": device.mac_address,
                 "gtwid": self.config.get('settings', 'hub_serial_no'),
-                "gtwtime": datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
+                "gtwtime": datetime.now(tz=None).isoformat(),
                 "orgid": 111111,
                 "primary": {
                     "type": "raw",
