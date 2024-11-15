@@ -127,7 +127,7 @@ class Flow():
             return
 
         if node.function is None:
-            logging.error(f"Node {node.node_name} has no function, skipping execution")
+            logging.error(f"Node {node.node_name} has no function. passing data and resolving children")
         else:
             await node.function(data=node.node_data)
         for vertex in node.outputs:

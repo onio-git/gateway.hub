@@ -69,12 +69,12 @@ class philips_hue(PluginInterface):
         self.active = False
 
     def associate_flow_node(self, device):
-            # Check each node in the flow table
-            for node in self.flow.flow_table:
-                if node.node_data.get('mac_address') == device.mac_address:
-                    node.device = device
-                if node.node_name == "toggle":
-                    node.function = device.toggle_light
+        # Check each node in the flow table
+        for node in self.flow.flow_table:
+            if node.node_data.get('mac_address') == device.mac_address:
+                node.device = device
+            if node.node_name == "toggle":
+                node.function = device.toggle_light
 
     async def run_devices(self):
         for _, device in self.devices.items():

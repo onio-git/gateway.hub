@@ -189,6 +189,7 @@ class ApiBackend():
                     "firmware": device.firmware
                 })
 
+        
         headers = self.get_headers(include_auth_token=True)
         response_data = self.make_api_request(self.config.get('endpoints', 'scan_data_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
         

@@ -12,7 +12,7 @@ sensors:
   #         amplitude: 5
   #         period: 60  
   #         time_unit: minutes
-  #   interval: 10  # in seconds
+  #   interval: 10  # in seconds. Time between each data point pushed to the server
 
   # - name: sensor22
   #   address: b1:0e:60:f2:70:fa # Must be unique for each sensor, for your hub
@@ -27,7 +27,7 @@ sensors:
   #         max_value: 70
   #         period: 2 
   #         time_unit: minutes
-  #   interval: 10  # in seconds
+  #   interval: 10  # in seconds. Time between each data point pushed to the server
 
   - name: sensor33
     address: b1:0e:60:f2:70:f0 # Must be unique for each sensor, for your hub
@@ -40,7 +40,7 @@ sensors:
         params:
           offset: 20
           amplitude: 10
-          period: 20  
+          period: 60  
           time_unit: minutes
       humidity:
         # pattern: sawtooth
@@ -55,7 +55,7 @@ sensors:
           max_value: 70
           period: 10 
           time_unit: minutes
-    interval: 20  # in seconds
+    interval: 20  # in seconds. Time between each data point pushed to the server
 
   - name: sensor44
     address: b2:1e:60:f2:70:f0 # Must be unique for each sensor, for your hub
@@ -77,4 +77,4 @@ sensors:
           max_value: 90
           period: 10  
           time_unit: minutes
-    interval: 10   # in seconds
+    interval: 10   # in seconds. Time between each data point pushed to the server

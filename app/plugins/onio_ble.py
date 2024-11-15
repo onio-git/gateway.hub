@@ -2,10 +2,12 @@ import logging
 from core.plugin_interface import PluginInterface
 from core.backend import ApiBackend
 from core.flow import Flow
-from bleak import BleakScanner
+from bleak import BleakScanner, BleakError
 from datetime import datetime
 import asyncio
 import threading
+import subprocess
+import time
 
 class onio_ble(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
@@ -15,12 +17,14 @@ class onio_ble(PluginInterface):
         self.scanner = None
         self.scan_thread = None
         self.stop_event = threading.Event()
-        
-        # Synchronization for BLE operations
         self.processing_lock = asyncio.Lock()
-        self.scan_task = None
+        self.last_scan_time = 0
+        self.scan_failures = 0
+        self.MAX_FAILURES = 3
+        self.SCAN_DURATION = 1.5
+        self.PAUSE_DURATION = 0.2
+        self.RECOVERY_DELAY = 10
         
-        # ONiO device types based on identifier bytes
         self.DEVICE_TYPES = {
             0xAA: "Blomsterpinne",
             0xBB: "ONiO-Accelerometer-button",
@@ -29,64 +33,111 @@ class onio_ble(PluginInterface):
         self.api = api
         self.flow = flow
 
-    def associate_flow_node(self, device):
-        pass
+    def reset_bluetooth(self):
+        try:
+            logging.info("Resetting Bluetooth adapter...")
+            subprocess.run(['sudo', 'hciconfig', 'hci0', 'down'], check=True)
+            time.sleep(1)
+            subprocess.run(['sudo', 'hciconfig', 'hci0', 'up'], check=True)
+            time.sleep(2)
+            self.scan_failures = 0
+            return True
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Failed to reset Bluetooth adapter: {e}")
+            return False
 
     def execute(self) -> None:
-        """Start continuous scanning if not already active"""
         if self.active:
             return
         
         self.active = True
         self.stop_event.clear()
-        self.scan_thread = threading.Thread(target=lambda: asyncio.run(self.scanning_loop()))
+        self.scan_thread = threading.Thread(
+            target=lambda: asyncio.run(self.scanning_loop()),
+            name="ONiO-BLE-Scanner"
+        )
+        self.scan_thread.daemon = True
         self.scan_thread.start()
 
     async def scanning_loop(self):
-        """Main scanning loop"""
         logging.info("Starting ONiO BLE scanning loop...")
         
         while not self.stop_event.is_set():
             try:
-                await self.scan_cycle()
-                await asyncio.sleep(0.5)  # Brief pause between cycles
+                current_time = time.time()
+                if current_time - self.last_scan_time >= self.SCAN_DURATION + self.PAUSE_DURATION:
+                    await self.scan_cycle()
+                    self.last_scan_time = current_time
+                
+                await asyncio.sleep(self.PAUSE_DURATION)
+
+            except asyncio.CancelledError:
+                break
             except Exception as e:
                 logging.error(f"Error in scanning loop: {e}")
-                await asyncio.sleep(0.5)  # Wait before retrying
+                self.scan_failures += 1
+                
+                if self.scan_failures >= self.MAX_FAILURES:
+                    if self.reset_bluetooth():
+                        self.scan_failures = 0
+                    await asyncio.sleep(self.RECOVERY_DELAY)
+                else:
+                    await asyncio.sleep(self.PAUSE_DURATION)
 
-        logging.info("ONiO BLE scanning loop stopped")
+        await self.cleanup()
         self.active = False
 
     async def scan_cycle(self):
-        """Single scan cycle with proper cleanup"""
         if self.processing_lock.locked():
             return
 
         async with self.processing_lock:
             try:
                 self.scanner = BleakScanner(detection_callback=self.detection_callback)
-                await self.scanner.start()
-                await asyncio.sleep(3)  # Scan duration
-                await self.scanner.stop()
-                self.scanner = None
+                scan_task = asyncio.create_task(self.scanner.start())
+                
+                try:
+                    await asyncio.wait_for(scan_task, timeout=self.SCAN_DURATION * 2)
+                    await asyncio.sleep(self.SCAN_DURATION)
+                except asyncio.TimeoutError:
+                    logging.error("Scan operation timed out")
+                    raise BleakError("Scan timeout")
+                finally:
+                    await self.cleanup_scanner()
+                
+                self.scan_failures = 0
+                
+            except BleakError as e:
+                logging.error(f"Bleak error during scan: {e}")
+                self.scan_failures += 1
+                await self.cleanup_scanner()
             except Exception as e:
                 logging.error(f"Error in scan cycle: {e}")
-                if self.scanner:
-                    try:
-                        await self.scanner.stop()
-                    except:
-                        pass
-                    self.scanner = None
+                self.scan_failures += 1
+                await self.cleanup_scanner()
+
+    async def cleanup_scanner(self):
+        if self.scanner:
+            try:
+                await self.scanner.stop()
+            except Exception as e:
+                logging.error(f"Error stopping scanner: {e}")
+            finally:
+                self.scanner = None
+
+    async def cleanup(self):
+        await self.cleanup_scanner()
+        self.active = False
+        self.scan_failures = 0
+        self.last_scan_time = 0
 
     async def detection_callback(self, device, advertising_data):
-        """Handle detected BLE devices"""
         try:
             if not self.filter_device(advertising_data):
                 return
 
             logging.debug(f"Found ONiO device: {device.address}")
             
-            # Stop current scan before processing
             if self.scanner:
                 try:
                     await self.scanner.stop()
@@ -94,14 +145,12 @@ class onio_ble(PluginInterface):
                 except Exception as e:
                     logging.debug(f"Error stopping scanner: {e}")
 
-            # Process the advertisement
             await self.process_device_data(device, advertising_data)
 
         except Exception as e:
             logging.error(f"Error in detection callback: {e}")
 
     def filter_device(self, adv_data) -> bool:
-        """Filter for ONiO devices"""
         try:
             if not adv_data.manufacturer_data:
                 return False
@@ -121,8 +170,7 @@ class onio_ble(PluginInterface):
             return False
 
     async def process_device_data(self, device, advertising_data):
-        """Process data from ONiO device"""
-        async with self.processing_lock:  # Ensure exclusive access during processing
+        async with self.processing_lock:
             try:
                 manufacturer_data_bytes = b''
                 for key, value in advertising_data.manufacturer_data.items():
@@ -132,61 +180,62 @@ class onio_ble(PluginInterface):
                     if (manufacturer_data_bytes[i] == 0xFE and 
                         manufacturer_data_bytes[i + 1] == 0xE5 and 
                         manufacturer_data_bytes[i + 2] in self.DEVICE_TYPES):
-                        logging.info(f"Processing ONiO device data: {device.address}")
                         
                         device_type = manufacturer_data_bytes[i + 2]
                         data_payload = manufacturer_data_bytes[i + 3:]
-                        
-                        # Create or get device
                         device_addr = device.address
                         device_name = self.DEVICE_TYPES.get(device_type, f"Unknown-ONiO-{device_type:02x}")
                         
                         if device_addr not in self.devices:
                             self.devices[device_addr] = self.Device(device_addr, device_name)
 
-                        # Process data based on device type
-                        processed_data = {
-                            'raw_data': [hex(b) for b in data_payload],
-                            'rssi': advertising_data.rssi,
-                            'device_type': device_name
-                        }
-
-                        if device_type == 0xAA:  # Blomsterpinne
-                            if len(data_payload) >= 4:
-                                processed_data.update({
-                                    'humidity': data_payload[2],
-                                })
+                        processed_data = await self.process_payload(device_type, data_payload, advertising_data)
                         
-                        elif device_type in [0xBB, 0xCC]:  # ONiO-Knapp variants
-                            if len(data_payload) >= 2:
-                                z = int(data_payload[3].to_bytes(1, 'big').hex(), 16)
-                                processed_data.update({
-                                    'button_state': data_payload[0],
-                                    # get 2s complement of the 4th byte. convert to int
-                                    'z_acceleration': z if z < 128 else z - 256,
-                                })
-
-                        # Send data to flow
-                        await self.flow.receive_device_data_to_flow(device_addr, processed_data)
-                        
-                        # Update device data
-                        self.devices[device_addr].update_data(processed_data)
-                        return  # Process only the first valid pattern found
+                        if processed_data:
+                            await self.flow.receive_device_data_to_flow(device_addr, processed_data)
+                            self.devices[device_addr].update_data(processed_data)
+                        return
 
             except Exception as e:
                 logging.error(f"Error processing device data: {e}")
             finally:
-                await asyncio.sleep(1)  # Brief pause before allowing next operation
+                await asyncio.sleep(1)
+
+    async def process_payload(self, device_type, data_payload, advertising_data):
+        try:
+            processed_data = {
+                'raw_data': [hex(b) for b in data_payload],
+                'rssi': advertising_data.rssi,
+                'device_type': self.DEVICE_TYPES.get(device_type)
+            }
+
+            if device_type == 0xAA and len(data_payload) >= 4:
+                processed_data['humidity'] = data_payload[2]
+            
+            elif device_type in [0xBB, 0xCC] and len(data_payload) >= 2:
+                z = int(data_payload[3].to_bytes(1, 'big').hex(), 16)
+                processed_data.update({
+                    'button_state': data_payload[0],
+                    'z_acceleration': z if z < 128 else z - 256,
+                })
+
+            return processed_data
+        except Exception as e:
+            logging.error(f"Error processing payload: {e}")
+            return None
 
     def stop_scanning(self):
-        """Stop scanning gracefully"""
         self.stop_event.set()
-        if self.scan_thread and self.scan_thread.is_alive() and self.scan_thread != threading.current_thread():
+        if self.scan_thread and self.scan_thread.is_alive():
             try:
-                self.scan_thread.join(timeout=2)
+                self.scan_thread.join(timeout=5.0)
             except Exception as e:
                 logging.error(f"Error stopping scan thread: {e}")
         self.active = False
+
+    def __del__(self):
+        self.stop_scanning()
+
 
     def display_devices(self) -> None:
         """Display discovered devices"""

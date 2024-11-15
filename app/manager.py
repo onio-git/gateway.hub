@@ -68,6 +68,21 @@ if __name__ == '__main__':
                     print("No WiFi connection detected. Starting hotspot...")
                     if not is_portal_running():
                         start_portal()
+
+                else:
+                    print("Checking for hostname conflict...")
+                    hostname = subprocess.run(['hostname'], stdout=subprocess.PIPE).stdout.decode().strip()
+                    # If there are any other devices with my hostname, change my hostname by addin a numeric suffix
+                    if subprocess.run(['ping', '-c', '1', f'{hostname}.local'], stdout=subprocess.PIPE).returncode == 0:
+                        print("Hostname conflict detected. Changing hostname...")
+                        hostname_suffix = 1
+                        while subprocess.run(['ping', '-c', '1', f'{hostname}-{hostname_suffix}.local'], stdout=subprocess.PIPE).returncode == 0:
+                            hostname_suffix += 1
+                        subprocess.run(['hostnamectl', 'set-hostname', f'{hostname}{hostname_suffix}'])
+                        print(f"Hostname changed to {hostname}{hostname_suffix}. Rebooting...")
+                        subprocess.run(['reboot'])
+
+
             network_check_delay += 1
 
     except Exception as e:

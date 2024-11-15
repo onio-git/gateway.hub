@@ -35,9 +35,9 @@ class Hub:
         # Comment out the plugins you don't want to load
         # Will later be managed by API 
 
-        self.load_plugin("null") # Sensor emulator plugin 
+        # self.load_plugin("null") # Sensor emulator plugin 
         self.load_plugin("onio_ble") # ONiO BLE plugin
-        self.load_plugin("philips_hue") # Philips hue experimental plugin 
+        # self.load_plugin("philips_hue") # Philips hue experimental plugin 
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
         self.load_plugin("sonos") # Sonos plugin
         # self.load_plugin("flic") # Flic plugin
@@ -86,6 +86,17 @@ class Hub:
                         logging.error("Failed to post scan results")
 
                     logging.info("Scan complete... Returning to main routine\n")
+
+                    # # Testing sonos command
+                    # for plugin in self.plugins:
+                    #     if plugin.__class__.__name__ == "sonos":
+                    #         for key, device in plugin.devices.items():
+                    #             if device.room_name == "Kitchen":
+                    #                 logging.info("Pausing Sonos device")
+                    #                 plugin.pause(device)
+                    #                 time.sleep(5)
+                    #                 logging.info("Playing Sonos device")
+                    #                 plugin.play(device)
                     
 
                 elif self.command == "":
@@ -138,6 +149,7 @@ class Hub:
                 
             elif plugin.protocol == 'WiFi':
                 plugin.discover()
+                
 
             elif plugin.protocol == 'Zigbee':
                 pass

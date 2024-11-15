@@ -11,6 +11,34 @@ import asyncio
 import threading
 from urllib.parse import urlparse
 
+
+def send_soap_request(device, template):
+    """Send SOAP request to Sonos device"""
+    try:
+        url = f"http://{device.ip}:1400{template['endpoint']}"
+        headers = {
+            'Content-Type': 'text/xml; charset="utf-8"',
+            'SOAPACTION': f'"{template["header"]}"'
+        }
+        
+        response = requests.post(
+            url,
+            data=template['body'],
+            headers=headers,
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            return response
+        else:
+            logging.error(f"SOAP request failed with status {response.status_code}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Request failed: {e}")
+        return None
+
+
 class sonos(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "WiFi"
@@ -79,6 +107,15 @@ class sonos(PluginInterface):
     def execute(self) -> None:
         """Start device discovery"""
         pass
+
+
+    def associate_flow_node(self, device):
+        # Check each node in the flow table
+        for node in self.flow.flow_table:
+            if node.node_data.get('mac_address') == device.mac_address:
+                node.device = device
+            if node.node_name == "next":
+                node.function = device.next_track
 
 
     def discover(self):
@@ -174,6 +211,8 @@ class sonos(PluginInterface):
             except Exception as e:
                 logging.error(f"Error getting details for device at {ip}: {e}")
 
+            self.associate_flow_node(device)
+
         self.display_devices()
 
 
@@ -192,9 +231,9 @@ class sonos(PluginInterface):
                 device.device_name = device_elem.findtext('.//ns:friendlyName', '', ns).split('-')[1] + f"({device.room_name})"
                 device.model_no = device_elem.findtext('.//ns:modelNumber', '', ns)
                 device.model_name = device_elem.findtext('.//ns:modelName', '', ns)
-                device.serial_no = device_elem.findtext('.//ns:serialNum', '', ns)
                 device.mac_address = device_elem.findtext('.//ns:MACAddress', '', ns)
                 device.udn = device_elem.findtext('.//ns:UDN', '', ns).replace('uuid:', '')
+                device.serial_no = device.udn
                 
                 self.get_group_topology(device)
                 
@@ -238,21 +277,21 @@ class sonos(PluginInterface):
         """Get current playback status, volume, and track info from the Sonos device"""
         try:
             # Get transport state (playing/paused)
-            response = self.send_soap_request(device, self.soap_templates['transport_info'])
+            response = send_soap_request(device, self.soap_templates['transport_info'])
             if response:
                 state = self.extract_value(response.text, 'CurrentTransportState')
                 device.playing = (state == 'PLAYING')
                 logging.debug(f"Transport state: {state}")
 
             # Get volume
-            response = self.send_soap_request(device, self.soap_templates['volume'])
+            response = send_soap_request(device, self.soap_templates['volume'])
             if response:
                 volume = self.extract_value(response.text, 'CurrentVolume')
                 device.volume = int(volume) if volume else 0
                 logging.debug(f"Volume: {device.volume}")
 
             # Get track info
-            response = self.send_soap_request(device, self.soap_templates['track_info'])
+            response = send_soap_request(device, self.soap_templates['track_info'])
             if response:
                 logging.debug(f"Raw track info response: {response.text}")
                 track_metadata = self.extract_value(response.text, 'TrackMetaData')
@@ -330,31 +369,7 @@ class sonos(PluginInterface):
         return False
 
 
-    def send_soap_request(self, device, template):
-        """Send SOAP request to Sonos device"""
-        try:
-            url = f"http://{device.ip}:1400{template['endpoint']}"
-            headers = {
-                'Content-Type': 'text/xml; charset="utf-8"',
-                'SOAPACTION': f'"{template["header"]}"'
-            }
-            
-            response = requests.post(
-                url,
-                data=template['body'],
-                headers=headers,
-                timeout=5
-            )
-            
-            if response.status_code == 200:
-                return response
-            else:
-                logging.error(f"SOAP request failed with status {response.status_code}")
-                return None
-
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Request failed: {e}")
-            return None
+    
 
 
     def extract_value(self, xml_text, tag):
@@ -483,7 +498,7 @@ class sonos(PluginInterface):
             self.room_name = speaker_info['room_name']
             self.model_no = speaker_info['model_no']
             self.model_name = speaker_info['model_name']
-            self.serial_no = speaker_info['serial_no']
+            self.serial_no = speaker_info['udn']
             self.udn = speaker_info['udn']
             self.master_udn = speaker_info['master_udn']
             self.master = True if self.udn == self.master_udn else False
@@ -500,3 +515,143 @@ class sonos(PluginInterface):
             
             # Dictionary to store service endpoints
             self.services = {}
+
+
+        def pause(self, data=None):
+            """Pause playback on the Sonos device"""
+            
+            template = {
+                'endpoint': '/MediaRenderer/AVTransport/Control',
+                'action': 'Pause',
+                'body': '''<?xml version="1.0" encoding="utf-8"?>
+                    <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                        <s:Body>
+                            <u:Pause xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+                                <InstanceID>0</InstanceID>
+                            </u:Pause>
+                        </s:Body>
+                    </s:Envelope>''',
+                'header': 'urn:schemas-upnp-org:service:AVTransport:1#Pause'
+            }
+
+            response = send_soap_request(self, template)
+
+            if response.status_code == 200:
+                logging.info(f"Playback paused on {self.device_name}")
+                return response
+            else:
+                logging.info(f"SOAP request failed with status {response.status_code}")
+                return None
+        
+    
+        def play(self, data=None):
+            """Play on the Sonos device"""
+            
+            template = {
+                'endpoint': '/MediaRenderer/AVTransport/Control',
+                'action': 'Play',
+                'body': '''<?xml version="1.0" encoding="utf-8"?>
+                    <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                        <s:Body>
+                            <u:Play xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+                                <InstanceID>0</InstanceID>
+                                <Speed>1</Speed>
+                            </u:Play>
+                        </s:Body>
+                    </s:Envelope>''',
+                'header': 'urn:schemas-upnp-org:service:AVTransport:1#Play'
+            }
+
+            response = send_soap_request(self, template)
+
+            if response.status_code == 200:
+                logging.info(f"Playback started on {self.device_name}")
+                return response
+            else:
+                logging.error(f"SOAP request failed with status {response.status_code}")
+                return None
+        
+
+        def set_volume(self, data=None):
+            """ Set volume on the Sonos device"""
+                
+            template = {
+                'endpoint': '/MediaRenderer/RenderingControl/Control',
+                'action': 'SetVolume',
+                'body': f'''<?xml version="1.0" encoding="utf-8"?>
+                    <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                        <s:Body>
+                            <u:SetVolume xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
+                                <InstanceID>0</InstanceID>
+                                <Channel>Master</Channel>
+                                <DesiredVolume>{data.get('volume', '10')}</DesiredVolume>
+                            </u:SetVolume>
+                        </s:Body>
+                    </s:Envelope>''',
+                'header': 'urn:schemas-upnp-org:service:RenderingControl:1#SetVolume'
+            }
+
+            response = send_soap_request(self, template)
+
+            if response.status_code == 200:
+                logging.info(f"Volume set to {data.get('volume', '10')} on {self.device_name}")
+                return response
+            else:
+                logging.error(f"SOAP request failed with status {response.status_code}")
+                return None
+        
+        
+        def next_track(self, data=None):
+            """Skip to next track on the Sonos device"""
+            
+            template = {
+                'endpoint': '/MediaRenderer/AVTransport/Control',
+                'action': 'Next',
+                'body': '''<?xml version="1.0" encoding="utf-8"?>
+                    <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                        <s:Body>
+                            <u:Next xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+                                <InstanceID>0</InstanceID>
+                            </u:Next>
+                        </s:Body>
+                    </s:Envelope>''',
+                'header': 'urn:schemas-upnp-org:service:AVTransport:1#Next'
+            }
+
+            response = send_soap_request(self, template)
+
+            if response.status_code == 200:
+                logging.info(f"Skipping to next track on {self.device_name}")
+                return response
+            else:
+                logging.error(f"SOAP request failed with status {response.status_code}")
+                return None
+        
+
+        def previous_track(self, data=None):
+            """Skip to previous track on the Sonos device"""
+            
+            template = {
+                'endpoint': '/MediaRenderer/AVTransport/Control',
+                'action': 'Previous',
+                'body': '''<?xml version="1.0" encoding="utf-8"?>
+                    <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+                        <s:Body>
+                            <u:Previous xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+                                <InstanceID>0</InstanceID>
+                            </u:Previous>
+                        </s:Body>
+                    </s:Envelope>''',
+                'header': 'urn:schemas-upnp-org:service:AVTransport:1#Previous'
+            }
+
+            response = send_soap_request(self, template)
+
+            if response.status_code == 200:
+                logging.info(f"Reverting to previous track on {self.device_name}")
+                return response
+            else:
+                logging.error(f"SOAP request failed with status {response.status_code}")
+                return None
+        
+
