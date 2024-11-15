@@ -48,6 +48,7 @@ def color_by_name(name: str = None) -> bytearray:
     name = name.lower()
     return color_map.get(name, bytearray([0x30, 0x50, 0x30, 0x54]))
 
+
 class philips_hue(PluginInterface):
     def __init__(self, api: ApiBackend, flow: Flow):
         self.protocol = "BLE"
@@ -63,26 +64,26 @@ class philips_hue(PluginInterface):
     def execute(self, command: str = '', meta_data: dict = {}) -> None:
         self.command = command
         self.meta_data = meta_data
+        logging.info(f"Executing Philips Hue Plugin with command: {command}, meta_data: {meta_data}")
         if self.active:
             return
-        if self.last_execution is not None and time.time() - self.last_execution < self.fetch_interval:
-            return
+        # if self.last_execution is not None and time.time() - self.last_execution < self.fetch_interval:
+        #     return
         self.active = True
         self.last_execution = time.time()
         asyncio.run(self.run_devices())
         self.active = False
 
     def associate_flow_node(self, device):
-            # Check each node in the flow table
-            for node in self.flow.flow_table:
-                if node.node_data.get('mac_address') == device.mac_address:
-                    node.device = device
-                if node.node_name == "toggle":
-                    node.function = device.toggle_light
+        # Check each node in the flow table
+        for node in self.flow.flow_table:
+            if node.node_data.get('mac_address') == device.mac_address:
+                node.device = device
+            if node.node_name == "toggle":
+                node.function = device.toggle_light
 
     async def run_devices(self):
         for _, device in self.devices.items():
-
             # If not connected, attempt to connect and read
             if device.connection_attempts >= 3:
                 logging.error(f"Exceeded connection attempts for {device.mac_address} - {device.device_name}")
@@ -96,7 +97,6 @@ class philips_hue(PluginInterface):
             #
             # else:
             #     logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
-
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():
@@ -132,35 +132,70 @@ class philips_hue(PluginInterface):
             self.is_connected = False
             self.connection_attempts = 0
 
-
         async def update_attributes(self, system_command: str = "", meta_data: dict = {}):
-            async with BleakClient(self.mac_address) as client:
-                if not client.is_connected:
-                    logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
-                    return None
+            def hex_to_rgb(hex_color):
+                hex_color = hex_color.lstrip('#')
 
-                self.is_connected = True
-                logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+                rgb_list = [int(hex_color[i:i + 2], 16) for i in (0, 2, 4)]
+                scale = 0xFF
+                adjusted = [max(1, chan) for chan in rgb_list]
+                total = sum(adjusted)
+                adjusted = [int(round(chan / total * scale)) for chan in adjusted]
+                return bytearray([0x1, adjusted[0], adjusted[2], adjusted[1]])
 
-                logging.info(f"System Command: {system_command}, meta_data: {meta_data}")
-                byte_value = bytes([0])
+            def percentage_to_brightness(percentage):
+                percentage = max(0, min(percentage, 100))
 
-                if isinstance(meta_data, dict):
-                    attributes = meta_data.get("attributes", {})
-                    for data_attribute in attributes:
-                        characteristic_uuid = data_attribute.get("uuid", None)
-                        characteristic_value = data_attribute.get("value", None)
-                        logging.info(characteristic_uuid)
-                        logging.info(characteristic_value)
-                        if characteristic_uuid and characteristic_value is not None:
-                            if isinstance(characteristic_value, str):
-                                byte_value = characteristic_value.encode('utf-8')
-                            elif isinstance(characteristic_value, int):
-                                byte_value = bytes([characteristic_value])
-                            try:
-                                await client.write_gatt_char(LIGHT_CHARACTERISTIC, byte_value, response=True)
-                            except Exception as e:
-                                logging.error(f"Failed to write characteristic: {e}")
+                brightness_value = int((percentage * 254) / 100)
+                # logging.info(f"Converted {percentage}% to brightness value: {brightness_value}")
+                # logging.info(f"Test bytearray: {bytearray([40])}")
+                return bytearray([brightness_value])
+
+            try:
+                if not self.is_paired or not self.is_trusted:
+                    logging.info(f"Initiating pairing and trusting with {self.mac_address} - {self.device_name}")
+                    paired_and_trusted = await pair_and_trust(self.mac_address)
+
+                    if paired_and_trusted:
+                        self.is_paired = True
+                        self.is_trusted = True
+                    else:
+                        logging.error(f"Failed to pair with {self.mac_address} - {self.device_name}")
+                        return None
+                else:
+                    logging.info(f"Device {self.mac_address} is already paired and trusted.")
+
+                async with BleakClient(self.mac_address) as client:
+                    if not client.is_connected:
+                        logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
+                        return None
+
+                    self.is_connected = True
+                    byte_value = bytes([0])
+                    if isinstance(meta_data, dict):
+                        attributes = meta_data.get("attributes", {})
+                        for data_attribute in attributes:
+                            characteristic_uuid = data_attribute.get("uuid", None)
+                            characteristic_value = data_attribute.get("value", None)
+                            if characteristic_uuid and characteristic_value is not None:
+                                logging.info(f"Updating {characteristic_uuid} with {characteristic_value}")
+                                if characteristic_uuid == LIGHT_CHARACTERISTIC:
+                                    if isinstance(characteristic_value, str):
+                                        byte_value = characteristic_value.encode('utf-8')
+                                    elif isinstance(characteristic_value, int):
+                                        byte_value = bytes([characteristic_value])
+                                elif characteristic_uuid == COLOR_CHARACTERISTIC:
+                                    byte_value = hex_to_rgb(characteristic_value)
+                                elif characteristic_uuid == BRIGHTNESS_CHARACTERISTIC:
+                                    byte_value = percentage_to_brightness(characteristic_value)
+
+                                try:
+                                    await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
+                                except Exception as e:
+                                    logging.error(f"Failed to write characteristic: {e}")
+
+            except Exception as e:
+                logging.error(f"Error in connect_and_read: {e}")
 
         async def connect_and_read(self) -> dict:
             try:
@@ -273,7 +308,6 @@ class philips_hue(PluginInterface):
                     except Exception as e:
                         logging.error(f"Failed to toggle light: {e}")
 
-
         async def turn_light_off(self, client=None):
             logging.info("Turning Light off...")
             if client is None:
@@ -330,7 +364,7 @@ class philips_hue(PluginInterface):
                 brightness = self.state["brightness"]
             if client is None:
                 async with BleakClient(self.mac_address) as client:
-                # Brightness range: 0-100 - converts to 1-254
+                    # Brightness range: 0-100 - converts to 1-254
                     brightness = int((brightness / 100) * 254)
                     try:
                         await client.write_gatt_char(BRIGHTNESS_CHARACTERISTIC, bytearray([brightness]), response=True)
