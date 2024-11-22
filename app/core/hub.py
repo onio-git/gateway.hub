@@ -35,12 +35,12 @@ class Hub:
         # Comment out the plugins you don't want to load
         # Will later be managed by API 
 
-        # self.load_plugin("null") # Sensor emulator plugin 
+        self.load_plugin("null") # Sensor emulator plugin 
         self.load_plugin("onio_ble") # ONiO BLE plugin
-        # self.load_plugin("philips_hue") # Philips hue experimental plugin 
-        # self.load_plugin("xiaomi") # Xiaomi experimental plugin
+        self.load_plugin("philips_hue") # Philips hue experimental plugin 
+        self.load_plugin("xiaomi") # Xiaomi experimental plugin
         self.load_plugin("sonos") # Sonos plugin
-        # self.load_plugin("flic") # Flic plugin
+        # self.load_plugin("flic") # Flic plugin (no work)
 
     def startup(self):
         
@@ -71,6 +71,7 @@ class Hub:
 
         # Initial scan
         self.scan_for_devices()
+        get_flow_delay = 0
 
         while True:
             try:                
@@ -99,6 +100,15 @@ class Hub:
                 self.command = ""
                 time.sleep(period)
                 self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
+
+                # Get flow every 50 cycles. This should be replaced by
+                # a command from the server whenever a new flow is activated
+                if get_flow_delay > 50:
+                    if self.flow.set_flow(self.api.get_flow()):
+                        logging.info("Successfully retrieved flow")
+                    get_flow_delay = 0
+                else:
+                    get_flow_delay += 1
                 
 
 
