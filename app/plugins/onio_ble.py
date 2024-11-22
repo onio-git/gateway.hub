@@ -22,13 +22,13 @@ class onio_ble(PluginInterface):
         self.last_scan_time = 0
         self.scan_failures = 0
         self.MAX_FAILURES = 3
-        self.SCAN_DURATION = 0.3
-        self.PAUSE_DURATION = 0.1
-        self.RECOVERY_DELAY = 1
+        self.SCAN_DURATION = 1.5
+        self.PAUSE_DURATION = 0.2
+        self.RECOVERY_DELAY = 10
         self._scan_count = 0
         self._is_cleaning = False
         self._active_scan = None
-        self._dbus_reconnect_threshold = 500  # Reconnect after this many scans
+        self._dbus_reconnect_threshold = 180  # Reconnect after this many scans
         self._current_scan_count = 0
         
         self.DEVICE_TYPES = {
@@ -101,30 +101,32 @@ class onio_ble(PluginInterface):
         self.scan_thread.daemon = True
         self.scan_thread.start()
 
+
     async def scanning_loop(self):
-        """Main scanning loop with better resource management"""
         logging.info("Starting ONiO BLE scanning loop...")
         
         while not self.stop_event.is_set():
             try:
                 current_time = time.time()
                 if current_time - self.last_scan_time >= self.SCAN_DURATION + self.PAUSE_DURATION:
-                    # Preventive D-Bus reset if needed
+                    # Check if we need to reset D-Bus connection
                     if self._current_scan_count >= self._dbus_reconnect_threshold:
                         logging.info("Performing preventive D-Bus connection reset...")
                         if await self.reset_dbus_connection():
-                            self._current_scan_count = 0
-                            await asyncio.sleep(1)  # Reduced sleep time
-                            continue
+                            await asyncio.sleep(2)
+                        else:
+                            await asyncio.sleep(self.RECOVERY_DELAY)
+                        continue
                     
-                    # Quick scan cycle with shorter timeout
+                    # Add timeout to entire scan cycle
                     try:
-                        async with asyncio.timeout(3):  # Reduced from 10s to 3s
+                        async with asyncio.timeout(10):
                             await self.scan_cycle()
                             self._current_scan_count += 1
                     except asyncio.TimeoutError:
-                        logging.error("Scan cycle timeout - resetting")
-                        await self.force_reset()  # New method for aggressive cleanup
+                        logging.error("Complete scan cycle timeout - forcing reset")
+                        await self.reset_dbus_connection()
+                        await asyncio.sleep(2)
                         continue
                     
                     self.last_scan_time = current_time
@@ -139,88 +141,74 @@ class onio_ble(PluginInterface):
                 self.scan_failures += 1
                 
                 if self.scan_failures >= self.MAX_FAILURES:
-                    await self.force_reset()
+                    if await self.reset_dbus_connection():
+                        await asyncio.sleep(2)
+                    else:
+                        await asyncio.sleep(self.RECOVERY_DELAY)
                 else:
                     await asyncio.sleep(self.PAUSE_DURATION)
 
         await self.cleanup()
         self.active = False
 
+
     async def scan_cycle(self):
-        """Optimized scan cycle with better resource management"""
         if self.processing_lock.locked():
             return
 
-        async with self.processing_lock:
-            try:
-                # Always ensure clean scanner state
-                await self.cleanup_scanner()
-                
-                # Create and start scanner with timeout
-                self.scanner = BleakScanner(detection_callback=self.detection_callback)
+        try:
+            async with self.processing_lock:
                 try:
-                    async with asyncio.timeout(1.0):  # Short timeout for scanner start
-                        await self.scanner.start()
-                except asyncio.TimeoutError:
-                    logging.error("Scanner start timeout")
+                    if self.scanner:
+                        await self.cleanup_scanner()
+                    
+                    self.scanner = BleakScanner(detection_callback=self.detection_callback)
+                    
+                    # Start the scanner without waiting for completion
+                    await self.scanner.start()
+                    
+                    # Let it scan for the duration
+                    await asyncio.sleep(self.SCAN_DURATION)
+                    
+                    # Stop the scanner
+                    if self.scanner:
+                        await self.scanner.stop()
+                    
+                    self.scan_failures = 0
+                    
+                except BleakError as e:
+                    if "LimitsExceeded" in str(e):
+                        logging.error("D-Bus connection limits exceeded - triggering reset")
+                        await self.reset_dbus_connection()
+                    else:
+                        logging.error(f"Bleak error during scan: {e}")
+                        self.scan_failures += 1
                     await self.cleanup_scanner()
-                    return
-                
-                # Short scan duration
-                await asyncio.sleep(self.SCAN_DURATION)
-                
-                # Clean stop with timeout
-                await self.cleanup_scanner()
-                self.scan_failures = 0
-                
-            except BleakError as e:
-                if "LimitsExceeded" in str(e):
-                    logging.error("D-Bus connection limits exceeded")
-                    await self.force_reset()
-                else:
-                    logging.error(f"Bleak error during scan: {e}")
+                except Exception as e:
+                    logging.error(f"Error in scan cycle: {e}")
                     self.scan_failures += 1
-                await self.cleanup_scanner()
-            except Exception as e:
-                logging.error(f"Error in scan cycle: {e}")
-                self.scan_failures += 1
+                    await self.cleanup_scanner()
+                    
+        except asyncio.TimeoutError:
+            logging.error("Timeout acquiring processing lock")
+            if self.scanner:
                 await self.cleanup_scanner()
 
+
     async def cleanup_scanner(self):
-        """More aggressive scanner cleanup"""
         if self.scanner:
             try:
-                async with asyncio.timeout(1.0):  # Reduced timeout
-                    await self.scanner.stop()
-            except (asyncio.TimeoutError, Exception) as e:
-                logging.error(f"Scanner stop error: {e}")
+                await asyncio.wait_for(self.scanner.stop(), timeout=2.0)
+            except asyncio.TimeoutError:
+                logging.error("Scanner stop timeout")
+            except Exception as e:
+                logging.error(f"Error stopping scanner: {e}")
             finally:
                 self.scanner = None
 
-    async def force_reset(self):
-        """Aggressive reset for recovery from bad states"""
-        logging.info("Performing aggressive reset...")
-        await self.cleanup_scanner()
-        
-        # Reset D-Bus
-        await self.reset_dbus_connection()
-        
-        # Reset counters
-        self.scan_failures = 0
-        self._current_scan_count = 0
-        self.last_scan_time = 0
-        
-        # Short recovery pause
-        await asyncio.sleep(1)
 
     async def cleanup(self):
-        """Clean shutdown"""
         await self.cleanup_scanner()
-        if hasattr(self, 'bus') and self.bus:
-            try:
-                self.bus.close()
-            except:
-                pass
         self.active = False
         self.scan_failures = 0
         self.last_scan_time = 0
