@@ -54,6 +54,12 @@ def main(log_level, serial_number, auto_scan, auto_collect):
         config().set('settings', 'hub_serial_no', serial_number)
 
     logging.info("Starting Smart Hub with serial number: " + serial_number)
+    # Hostname
+    hostname = os.uname().nodename
+    logging.info(f"Hostname: {hostname}")
+    logging.info("Control panel: http://" + hostname + ".local")
+
+
     hub = Hub(serial_number)
     
     if auto_scan:

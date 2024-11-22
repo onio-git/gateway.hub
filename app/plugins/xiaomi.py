@@ -21,6 +21,8 @@ class xiaomi(PluginInterface):
         self.protocol = "BLE"
         self.devices = {}
         self.active = False
+        self.last_update = None
+        self.update_interval = 3600
         self.api = api
         self.flow = flow
         self.config = config()
@@ -29,32 +31,31 @@ class xiaomi(PluginInterface):
         pass
 
     def execute(self) -> None:
-        if self.active: # prevent multiple instances of the plugin from running at the same time
-            return
-        self.active = True
-        for _, device in self.devices.items():
-            data = asyncio.run(device.connect_and_read())
-            if not data:
-                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
-                continue
-            jsn_data = {
-                "devid": device.mac_address,
-                "gtwid": self.config.get('settings', 'hub_serial_no'),
-                "gtwtime": datetime.now(tz=None).isoformat(),
-                "orgid": 111111,
-                "primary": {
-                    "type": "raw",
-                    "value": [
-                        round(data['temperature'], 2),
-                        round(data['moisture'], 2),
-                        round(data['energy'], 2),
-                        round(data['brightness'], 2),
-                        round(data['conductivity'], 2)
-                    ]
+        if self.last_update == None or (datetime.now() - self.last_update).seconds > self.update_interval:
+            self.active = True
+            for _, device in self.devices.items():
+                data = asyncio.run(device.connect_and_read())
+                if not data:
+                    logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+                    continue
+                jsn_data = {
+                    "devid": device.mac_address,
+                    "gtwid": self.config.get('settings', 'hub_serial_no'),
+                    "gtwtime": datetime.now(tz=None).isoformat(),
+                    "orgid": 111111,
+                    "primary": {
+                        "type": "raw",
+                        "value": [
+                            round(data['temperature'], 2),
+                            round(data['moisture'], 2),
+                            round(data['energy'], 2),
+                            round(data['brightness'], 2),
+                            round(data['conductivity'], 2)
+                        ]
+                    }
                 }
-            }
-            self.api.send_collected_data(jsn_data)
-        self.active = False
+                self.api.send_collected_data(jsn_data)
+            self.active = False
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():

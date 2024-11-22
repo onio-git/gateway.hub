@@ -72,15 +72,49 @@ if __name__ == '__main__':
                 else:
                     print("Checking for hostname conflict...")
                     hostname = subprocess.run(['hostname'], stdout=subprocess.PIPE).stdout.decode().strip()
-                    # If there are any other devices with my hostname, change my hostname by addin a numeric suffix
+                    # If there are any other devices with my hostname, change my hostname by adding a numeric suffix
                     if subprocess.run(['ping', '-c', '1', f'{hostname}.local'], stdout=subprocess.PIPE).returncode == 0:
                         print("Hostname conflict detected. Changing hostname...")
                         hostname_suffix = 1
                         while subprocess.run(['ping', '-c', '1', f'{hostname}-{hostname_suffix}.local'], stdout=subprocess.PIPE).returncode == 0:
                             hostname_suffix += 1
-                        subprocess.run(['hostnamectl', 'set-hostname', f'{hostname}{hostname_suffix}'])
-                        print(f"Hostname changed to {hostname}{hostname_suffix}. Rebooting...")
-                        subprocess.run(['reboot'])
+                        
+                        new_hostname = f'{hostname}{hostname_suffix}'
+                        
+                        # Update hostname
+                        subprocess.run(['hostnamectl', 'set-hostname', new_hostname])
+                        
+                        # Update /etc/hosts file
+                        try:
+                            # Read current hosts file
+                            with open('/etc/hosts', 'r') as file:
+                                hosts_content = file.readlines()
+                            
+                            # Create new hosts content
+                            new_hosts_content = []
+                            for line in hosts_content:
+                                if line.startswith('127.0.0.1') or line.startswith('::1'):
+                                    # Split the line into parts
+                                    parts = line.split()
+                                    # Keep the IP and 'localhost', add new hostname
+                                    if line.startswith('127.0.0.1'):
+                                        new_hosts_content.append(f'127.0.0.1\tlocalhost {new_hostname}\n')
+                                    else:  # ::1
+                                        new_hosts_content.append(f'::1\tlocalhost {new_hostname}\n')
+                                else:
+                                    new_hosts_content.append(line)
+                            
+                            # Write new hosts file
+                            with open('/etc/hosts', 'w') as file:
+                                file.writelines(new_hosts_content)
+                            
+                            print(f"Hostname changed to {new_hostname} and /etc/hosts updated. Rebooting...")
+                            subprocess.run(['reboot'])
+                            
+                        except Exception as e:
+                            print(f"Error updating /etc/hosts: {e}")
+                            # Still reboot even if hosts file update fails
+                            subprocess.run(['reboot'])
 
 
             network_check_delay += 1

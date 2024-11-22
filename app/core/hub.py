@@ -87,16 +87,6 @@ class Hub:
 
                     logging.info("Scan complete... Returning to main routine\n")
 
-                    # # Testing sonos command
-                    # for plugin in self.plugins:
-                    #     if plugin.__class__.__name__ == "sonos":
-                    #         for key, device in plugin.devices.items():
-                    #             if device.room_name == "Kitchen":
-                    #                 logging.info("Pausing Sonos device")
-                    #                 plugin.pause(device)
-                    #                 time.sleep(5)
-                    #                 logging.info("Playing Sonos device")
-                    #                 plugin.play(device)
                     
 
                 elif self.command == "":
@@ -145,7 +135,7 @@ class Hub:
     def scan_for_devices(self):
         for plugin in self.plugins:
             if plugin.protocol == 'BLE':
-                asyncio.run(self.ble.scan_by_plugin(plugin, timeout=10))
+                asyncio.run(self.ble.scan_by_plugin(plugin, timeout=5))
                 
             elif plugin.protocol == 'WiFi':
                 plugin.discover()

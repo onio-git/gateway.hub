@@ -54,14 +54,12 @@ class philips_hue(PluginInterface):
         self.devices = {}
         self.active = False
         self.last_execution = None
-        self.fetch_interval = 60  # in seconds
+        self.update_interval = 60  # in seconds
         self.api = api
         self.flow = flow
 
     def execute(self) -> None:
-        if self.active:
-            return
-        if self.last_execution is not None and time.time() - self.last_execution < self.fetch_interval:
+        if self.last_execution is not None and time.time() - self.last_execution < self.update_interval:
             return
         self.active = True
         self.last_execution = time.time()
@@ -73,8 +71,8 @@ class philips_hue(PluginInterface):
         for node in self.flow.flow_table:
             if node.node_data.get('mac_address') == device.mac_address:
                 node.device = device
-            if node.node_name == "toggle":
-                node.function = device.toggle_light
+                if node.node_name == "toggle":
+                    node.function = device.toggle_light
 
     async def run_devices(self):
         for _, device in self.devices.items():
