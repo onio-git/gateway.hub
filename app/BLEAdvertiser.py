@@ -35,7 +35,7 @@ class BLEAdvertisement(dbus.service.Object):
         self.service_uuids = ['00420000-8f59-4420-870d-84f3b617e493']
         self.discoverable = True
         self.manufacturer_data = {
-            0x004F: dbus.Array([dbus.Byte(0x00), dbus.Byte(0x00)], 
+            0x004F: dbus.Array([dbus.Byte(0xfe), dbus.Byte(0xe5), dbus.Byte(0x00), dbus.Byte(0x00), dbus.Byte(0x00), dbus.Byte(0x00)], 
                               signature=dbus.Signature('y'))
         }
         
@@ -49,9 +49,13 @@ class BLEAdvertisement(dbus.service.Object):
             status |= 0x40
             
         rssi_byte = min(255, max(0, rssi + 100))
+
+        counter = self.manufacturer_data[0x004F][0] + 1
+        if counter > 0xFF:
+            counter = 0x00
         
         self.manufacturer_data = {
-            0x004F: dbus.Array([dbus.Byte(status), dbus.Byte(rssi_byte)], 
+            0x004F: dbus.Array([dbus.Byte(0xfe), dbus.Byte(0xe5), dbus.Byte(0x00), dbus.Byte(counter), dbus.Byte(status), dbus.Byte(rssi_byte)], 
                               signature=dbus.Signature('y'))
         }
 

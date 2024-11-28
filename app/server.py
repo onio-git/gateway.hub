@@ -242,6 +242,12 @@ def index(path = ''):
         connection_status = "Connected"
     ip_address = run_command(['hostname', '-I'])
 
+    service_status = run_command(['systemctl', 'status', 'SmarthubManager.service'])
+    if "active (running)" in service_status:
+        service_status = "Running"
+    else:
+        service_status = "Stopped"
+
     logger.info("Serving index page...")
 
     return render_template("index.html", 
@@ -257,7 +263,8 @@ def index(path = ''):
                         current_ethernet=current_ethernet,
                         connection_status=connection_status,
                         ip_address=ip_address,
-                        signal_strength=rssi
+                        signal_strength=rssi,
+                        service_status=service_status
                         )
 
 
@@ -266,6 +273,13 @@ def restart_services():
     logger.info("Restarting services requested by user.")
     subprocess.run(['systemctl', 'restart', 'SmarthubManager.service'])
     return 'Restarting services...' , 200
+
+
+@app.route('/stop_services', methods=['GET', 'POST'])
+def stop_services():
+    logger.info("Stopping services requested by user.")
+    subprocess.run(['systemctl', 'stop', 'SmarthubManager.service'])
+    return 'Stopping services...' , 200
 
 
 
