@@ -35,15 +35,19 @@ class Hub:
         # Comment out the plugins you don't want to load
         # Will later be managed by API 
 
-        self.load_plugin("null") # Sensor emulator plugin 
-        self.load_plugin("onio_ble") # ONiO BLE plugin
-        self.load_plugin("philips_hue") # Philips hue experimental plugin 
-        self.load_plugin("xiaomi") # Xiaomi experimental plugin
-        self.load_plugin("sonos") # Sonos plugin
+
+        # These are loaded from the plugins.txt file. And can be managed by commands from the server
+        # self.load_plugin("null") # Sensor emulator plugin 
+        # self.load_plugin("onio_ble") # ONiO BLE plugin
+        # self.load_plugin("philips_hue") # Philips hue experimental plugin 
+        # self.load_plugin("xiaomi") # Xiaomi experimental plugin
+        # self.load_plugin("sonos") # Sonos plugin
         # self.load_plugin("flic") # Flic plugin (no work)
 
     def startup(self):
-        
+        self.get_plugins_from_file()
+
+
         # Disable this to avoid unnecessary geolocation requests and costs.
         # local_ap_list = self.wifi.scan_wifi_networks()
         # if local_ap_list is not None:
@@ -96,6 +100,18 @@ class Hub:
                     self.execute_plugins()
                     pass
 
+                elif self.command.startswith("load_plugin"):
+                    plugin_name = self.command.split(":")[1]
+                    self.load_plugin(plugin_name)
+
+                elif self.command.startswith("unload_plugin"):
+                    plugin_name = self.command.split(":")[1]
+                    for plugin in self.plugins:
+                        if plugin.__class__.__name__ == plugin_name:
+                            self.plugins.remove(plugin)
+                            logging.info("Plugin unloaded: " + plugin_name)
+                            break
+
                 
                 self.command = ""
                 time.sleep(period)
@@ -132,6 +148,12 @@ class Hub:
 
 
     def load_plugin(self, plugin_name):
+        # Write plugin name as a new line in the plugins.txt file if the plugin is not already in the file
+        with open("plugins.txt", "r") as f:
+            if plugin_name not in f.read():
+                with open("plugins.txt", "a") as f:
+                    f.write(plugin_name)
+                    f.write("\n")
         module = importlib.import_module(f"{self.plugin_dir}.{plugin_name}")
         if not hasattr(module, plugin_name):
             logging.error(f"Plugin not found: {plugin_name}")
@@ -140,6 +162,32 @@ class Hub:
         plugin = plugin_class(api=self.api, flow=self.flow)
         self.plugins.append(plugin)
         logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
+
+
+    def unload_plugin(self, plugin_name):
+        for plugin in self.plugins:
+            if plugin.__class__.__name__ == plugin_name:
+                self.plugins.remove(plugin)
+                logging.info("Plugin unloaded: " + plugin_name)
+                # Remove plugin name from plugins.txt
+                with open("plugins.txt", "r") as f:
+                    lines = f.readlines()
+                    for i, line in enumerate(lines):
+                        if line == plugin_name:
+                            lines.pop(i)
+                            break
+                
+                with open("plugins.txt", "w") as f:
+                    f.writelines(lines)
+                return
+            
+
+    def get_plugins_from_file(self):
+        with open("plugins.txt", "r") as f:
+            plugins = f.readlines()
+            for plugin in plugins:
+                self.load_plugin(plugin.strip())
+        return
 
 
     def scan_for_devices(self):

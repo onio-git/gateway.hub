@@ -48,7 +48,7 @@ def setup_logging(log_level):
     log_file = f"log/logs/logs_session_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.log"
 
     # Configure console logging
-    console_formatter = ColoredFormatter('%(asctime)s - %(levelname)s \t- %(message)s', datefmt='%H:%M:%S')
+    console_formatter = ColoredFormatter('%(levelname)s - [%(funcName)s] - %(message)s', datefmt='%H:%M:%S')
     console_handler = logging.StreamHandler()
     console_handler.setLevel(level)
     console_handler.setFormatter(console_formatter)

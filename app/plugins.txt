@@ -1,0 +1,4 @@
+onio_ble
+philips_hue
+xiaomi
+sonos

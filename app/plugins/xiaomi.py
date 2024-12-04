@@ -33,6 +33,7 @@ class xiaomi(PluginInterface):
     def execute(self) -> None:
         if self.last_update == None or (datetime.now() - self.last_update).seconds > self.update_interval:
             self.active = True
+            self.last_update = datetime.now()
             for _, device in self.devices.items():
                 data = asyncio.run(device.connect_and_read())
                 if not data:
@@ -91,6 +92,7 @@ class xiaomi(PluginInterface):
 
                     # Read data characteristic
                     data = await client.read_gatt_char(READ_DATA_UUID)
+                    logging.info(f"Data received from Flower Care sensor: {data}")
                     self.data['temperature'] = int.from_bytes(data[0:2], byteorder='little') / 10.0
                     self.data['brightness'] = int.from_bytes(data[3:7], byteorder='little')
                     self.data['moisture'] = data[7]
@@ -112,11 +114,11 @@ class xiaomi(PluginInterface):
 
 
         def print_data(self):
-            print("Xiaomi Device Data:")
-            print(f"  Temperature: {self.data['temperature']} °C")
-            print(f"  Brightness: {self.data['brightness']} lux")
-            print(f"  Moisture: {self.data['moisture']} %")
-            print(f"  Conductivity: {self.data['conductivity']} µS/cm")
-            print(f"  Battery: {self.data['energy']}%")
+            logging.info("Xiaomi Device Data:")
+            logging.info(f"  Temperature: {self.data['temperature']} °C")
+            logging.info(f"  Brightness: {self.data['brightness']} lux")
+            logging.info(f"  Moisture: {self.data['moisture']} %")
+            logging.info(f"  Conductivity: {self.data['conductivity']} µS/cm")
+            logging.info(f"  Battery: {self.data['energy']}%")
             
 
