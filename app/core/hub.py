@@ -154,13 +154,17 @@ class Hub:
                 with open("plugins.txt", "a") as f:
                     f.write(plugin_name)
                     f.write("\n")
-        module = importlib.import_module(f"{self.plugin_dir}.{plugin_name}")
-        if not hasattr(module, plugin_name):
+        try:
+            module = importlib.import_module(f"{self.plugin_dir}.{plugin_name}")
+            if not hasattr(module, plugin_name):
+                logging.error(f"Plugin not found: {plugin_name}")
+                return
+            plugin_class = getattr(module, plugin_name)
+            plugin = plugin_class(api=self.api, flow=self.flow)
+            self.plugins.append(plugin)
+        except ModuleNotFoundError:
             logging.error(f"Plugin not found: {plugin_name}")
             return
-        plugin_class = getattr(module, plugin_name)
-        plugin = plugin_class(api=self.api, flow=self.flow)
-        self.plugins.append(plugin)
         logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
 
 
@@ -186,6 +190,8 @@ class Hub:
         with open("plugins.txt", "r") as f:
             plugins = f.readlines()
             for plugin in plugins:
+                if plugin.startswith("#"):
+                    continue
                 self.load_plugin(plugin.strip())
         return
 
@@ -193,7 +199,7 @@ class Hub:
     def scan_for_devices(self):
         for plugin in self.plugins:
             if plugin.protocol == 'BLE':
-                asyncio.run(self.ble.scan_by_plugin(plugin, timeout=5))
+                asyncio.run(self.ble.discover(plugin, timeout=5))
                 
             elif plugin.protocol == 'WiFi':
                 plugin.discover()

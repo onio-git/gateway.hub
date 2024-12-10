@@ -22,7 +22,7 @@ class xiaomi(PluginInterface):
         self.devices = {}
         self.active = False
         self.last_update = None
-        self.update_interval = 3600
+        self.update_interval = 15
         self.api = api
         self.flow = flow
         self.config = config()
@@ -48,7 +48,7 @@ class xiaomi(PluginInterface):
                         "type": "raw",
                         "value": [
                             round(data['temperature'], 2),
-                            round(data['moisture'], 2),
+                            round(data['humidity'], 2),
                             round(data['energy'], 2),
                             round(data['brightness'], 2),
                             round(data['conductivity'], 2)
@@ -95,7 +95,7 @@ class xiaomi(PluginInterface):
                     logging.info(f"Data received from Flower Care sensor: {data}")
                     self.data['temperature'] = int.from_bytes(data[0:2], byteorder='little') / 10.0
                     self.data['brightness'] = int.from_bytes(data[3:7], byteorder='little')
-                    self.data['moisture'] = data[7]
+                    self.data['humidity'] = data[7]
                     self.data['conductivity'] = int.from_bytes(data[8:10], byteorder='little')
 
                     # Read battery characteristic
@@ -117,7 +117,7 @@ class xiaomi(PluginInterface):
             logging.info("Xiaomi Device Data:")
             logging.info(f"  Temperature: {self.data['temperature']} °C")
             logging.info(f"  Brightness: {self.data['brightness']} lux")
-            logging.info(f"  Moisture: {self.data['moisture']} %")
+            logging.info(f"  Moisture: {self.data['humidity']} %")
             logging.info(f"  Conductivity: {self.data['conductivity']} µS/cm")
             logging.info(f"  Battery: {self.data['energy']}%")
             

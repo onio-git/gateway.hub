@@ -1,4 +1,7 @@
+# Insert plugin names here to load. Use # to comment out
+#
 onio_ble
 philips_hue
 xiaomi
 sonos
+null

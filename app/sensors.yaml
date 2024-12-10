@@ -29,52 +29,138 @@ sensors:
   #         time_unit: minutes
   #   interval: 10  # in seconds. Time between each data point pushed to the server
 
-  - name: sensor33
-    address: b1:0e:60:f2:70:f0 # Must be unique for each sensor, for your hub
-    serial_no: "onio-0005-002"
-    model_no: "onio-sensor-node"
-    description: "Multi Sensor Emulator"
+  # - name: sensor33
+  #   address: b1:0e:60:f2:70:f0 # Must be unique for each sensor, for your hub
+  #   serial_no: "onio-0005-002"
+  #   model_no: "onio-sensor-node"
+  #   description: "Multi Sensor Emulator"
+  #   data:
+  #     temperature:
+  #       pattern: cosine
+  #       params:
+  #         offset: 20
+  #         amplitude: 10
+  #         period: 60  
+  #         time_unit: minutes
+  #     humidity:
+  #       # pattern: sawtooth
+  #       # params:
+  #       #   min_value: 30
+  #       #   max_value: 90
+  #       #   period: 10  
+  #       #   time_unit: minutes
+  #       pattern: square
+  #       params:
+  #         min_value: 50
+  #         max_value: 70
+  #         period: 10 
+  #         time_unit: minutes
+  #   interval: 20  # in seconds. Time between each data point pushed to the server
+
+  # - name: sensor44
+  #   address: b2:1e:60:f2:70:f0 # Must be unique for each sensor, for your hub
+  #   serial_no: "onio-0005-002"
+  #   model_no: "onio-raw-sensor"
+  #   description: "Multi Sensor Emulator"
+  #   data:
+  #     temperature:
+  #       pattern: cosine
+  #       params:
+  #         offset: 60
+  #         amplitude: 30
+  #         period: 7  
+  #         time_unit: minutes
+  #     humidity:
+  #       pattern: sawtooth
+  #       params:
+  #         min_value: 30
+  #         max_value: 90
+  #         period: 10  
+  #         time_unit: minutes
+  #   interval: 10   # in seconds. Time between each data point pushed to the server
+
+  - name: flower-care-A1
+    address: b2:1e:60:f2:01:01 # Must be unique for each sensor, for your hub
+    serial_no: "onio-0010-001"
+    model_no: "HHCCJCY01HHCC"
+    description: "Flower Care Emulator"
     data:
       temperature:
         pattern: cosine
         params:
           offset: 20
-          amplitude: 10
-          period: 60  
-          time_unit: minutes
+          amplitude: 4
+          period: 2  
+          time_unit: hours
       humidity:
-        # pattern: sawtooth
-        # params:
-        #   min_value: 30
-        #   max_value: 90
-        #   period: 10  
-        #   time_unit: minutes
+        pattern: sawtooth
+        params:
+          min_value: 70
+          max_value: 90
+          period: 3  
+          time_unit: hours
+      brightness:
+        pattern: square
+        params:
+          min_value: 200
+          max_value: 300
+          period: 3 
+          time_unit: hours
+      conductivity:
         pattern: square
         params:
           min_value: 50
           max_value: 70
-          period: 10 
-          time_unit: minutes
-    interval: 20  # in seconds. Time between each data point pushed to the server
+          period: 2 
+          time_unit: hours
+      energy:
+        pattern: sawtooth
+        params:
+          min_value: 50
+          max_value: 90
+          period: 5 
+          time_unit: hours
+    interval: 15  # in seconds. Time between each data point pushed to the server
 
-  - name: sensor44
-    address: b2:1e:60:f2:70:f0 # Must be unique for each sensor, for your hub
-    serial_no: "onio-0005-002"
-    model_no: "onio-raw-sensor"
-    description: "Multi Sensor Emulator"
+  - name: flower-care-A2
+    address: b2:1e:60:f2:01:02 # Must be unique for each sensor, for your hub
+    serial_no: "onio-0010-002"
+    model_no: "HHCCJCY01HHCC"
+    description: "Flower Care Emulator"
     data:
       temperature:
         pattern: cosine
         params:
-          offset: 60
-          amplitude: 30
-          period: 7  
-          time_unit: minutes
+          offset: 20
+          amplitude: 4
+          period: 2  
+          time_unit: hours
       humidity:
         pattern: sawtooth
         params:
-          min_value: 30
+          min_value: 70
           max_value: 90
-          period: 10  
-          time_unit: minutes
-    interval: 10   # in seconds. Time between each data point pushed to the server
+          period: 3  
+          time_unit: hours
+      brightness:
+        pattern: square
+        params:
+          min_value: 200
+          max_value: 300
+          period: 3 
+          time_unit: hours
+      conductivity:
+        pattern: square
+        params:
+          min_value: 50
+          max_value: 70
+          period: 2 
+          time_unit: hours
+      energy:
+        pattern: sawtooth
+        params:
+          min_value: 50
+          max_value: 90
+          period: 5 
+          time_unit: hours
+    interval: 15  # in seconds. Time between each data point pushed to the server

@@ -41,40 +41,6 @@ class null(PluginInterface):
     def associate_flow_node(self, device):
         pass
 
-    # Old execute method without queue-based processing
-    # def execute(self) -> None:
-    #     if not self.active:
-    #         logging.info("Starting null plugin")
-    #         self.active = True
-    #         while True:
-    #             for _, device in self.devices.items():
-    #                 current_time = datetime.now()
-    #                 if device.last_execution_time is None or \
-    #                 (current_time - device.last_execution_time).total_seconds() >= device.interval:
-    #                     device.generate_emulated_data()
-    #                     device.last_execution_time = current_time
-    #                     logging.debug(f"Data from {device.device_name}: {device.data}")
-    #                     try:
-    #                         jsn_data = {
-    #                             "devid": device.mac_address,
-    #                             "gtwid": self.config.get('settings', 'hub_serial_no'),
-    #                             "gtwtime": current_time.strftime("%Y-%m-%dT%H:%M:%S"),
-    #                             "orgid": 111111,
-    #                             "primary": {
-    #                                 "type": "raw",
-    #                                 "value": [
-    #                                     round(device.data['data']['temperature'], 2),
-    #                                     round(device.data['data']['humidity'], 2),
-    #                                     round(device.data['data']['energy'], 2),
-    #                                     round(device.data['data']['brightness'], 2),
-    #                                     round(device.data['data']['conductivity'], 2)
-    #                                 ]
-    #                             }
-    #                         }
-    #                         self.api.send_collected_data(jsn_data)
-    #                     except Exception as e:
-    #                         logging.error(f"Error sending data to API: {str(e)}")
-    #             time.sleep(1)
 
     def queue_worker(self, queue: Queue) -> None:
         """Worker thread that processes devices from the queue"""
