@@ -206,6 +206,7 @@ class ApiBackend():
 
         if response_data.get('statusCode') == 200:
             return True
+        
         else:
             logging.error(f"Failed to post scan results to server: {response_data.get('statusCode')}")
             logging.debug(json_data)
@@ -228,10 +229,13 @@ class ApiBackend():
 
         if response_data.get('statusCode') == 200:
             return True
+        
         else:
             logging.error("Failed to send collected data to server. status code: " + str(response_data.get('statusCode')))
             logging.debug(data)
             logging.error(response_data)
+            if response_data.get('statusCode') == 404:
+                logging.error("Register the device with the server by scanning from the frontend to resolve this.")
             return False
         
 

@@ -9,10 +9,11 @@ from datetime import datetime
 import time
 
 # Xiaomi service and characteristic UUIDs
-SERVIDE_UUID = "00001204-0000-1000-8000-00805f9b34fb"
-ACCESS_CHAR_UUID = "00001a00-0000-1000-8000-00805f9b34fb"
-READ_DATA_UUID = "00001a01-0000-1000-8000-00805f9b34fb"
-READ_BATTERY_UUID = "00001a02-0000-1000-8000-00805f9b34fb"
+SEARCH_UUID = "0000fe95-0000-1000-8000-00805f9b34fb" # Filter for Xiaomi devices in advertisement data
+SERVIDE_UUID = "00001204-0000-1000-8000-00805f9b34fb" # Unused. 
+ACCESS_CHAR_UUID = "00001a00-0000-1000-8000-00805f9b34fb" # Write to this characteristic to enable data reading: bytearray([0xA0, 0x1F])
+READ_DATA_UUID = "00001a01-0000-1000-8000-00805f9b34fb" # Read data from this characteristic
+READ_BATTERY_UUID = "00001a02-0000-1000-8000-00805f9b34fb" # Read battery level and firmware from this characteristic
 
 
 # class name must match the file name
@@ -66,7 +67,7 @@ class xiaomi(PluginInterface):
         def __init__(self):
             self.protocol = "BLE"
             self.scan_filter_method = "uuid"
-            self.scan_filter = "0000fe95-0000-1000-8000-00805f9b34fb"
+            self.scan_filter = SEARCH_UUID
 
     class Device(PluginInterface.DeviceInterface):
         def __init__(self, mac_address, device_name):

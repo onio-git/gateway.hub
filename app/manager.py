@@ -63,7 +63,7 @@ if __name__ == '__main__':
             
             time.sleep(2)  
 
-            if network_check_delay == 30: # After 60 seconds, the script will check if the WiFi connection is established. If not, it will start the hotspot.
+            if network_check_delay == 30: # After 30 seconds, the script will check if the WiFi connection is established. If not, it will start the hotspot.
                 if not is_wifi_connected():
                     print("No WiFi connection detected. Starting hotspot...")
                     if not is_portal_running():

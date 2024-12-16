@@ -29,20 +29,8 @@ class Hub:
         self.flow = Flow()
         
         self.command = ""
-        
-
-        # Load plugins
-        # Comment out the plugins you don't want to load
-        # Will later be managed by API 
 
 
-        # These are loaded from the plugins.txt file. And can be managed by commands from the server
-        # self.load_plugin("null") # Sensor emulator plugin 
-        # self.load_plugin("onio_ble") # ONiO BLE plugin
-        # self.load_plugin("philips_hue") # Philips hue experimental plugin 
-        # self.load_plugin("xiaomi") # Xiaomi experimental plugin
-        # self.load_plugin("sonos") # Sonos plugin
-        # self.load_plugin("flic") # Flic plugin (no work)
 
     def startup(self):
         self.get_plugins_from_file()
@@ -148,7 +136,6 @@ class Hub:
 
 
     def load_plugin(self, plugin_name):
-        # Write plugin name as a new line in the plugins.txt file if the plugin is not already in the file
         with open("plugins.txt", "r") as f:
             if plugin_name not in f.read():
                 with open("plugins.txt", "a") as f:
@@ -199,6 +186,7 @@ class Hub:
     def scan_for_devices(self):
         for plugin in self.plugins:
             if plugin.protocol == 'BLE':
+                # BLE devices are discovered using the ble manager. We use the SearchableDevice class to filter devices
                 asyncio.run(self.ble.discover(plugin, timeout=5))
                 
             elif plugin.protocol == 'WiFi':
@@ -210,7 +198,11 @@ class Hub:
             elif plugin.protocol == 'Zwave':
                 pass
 
-
+    
+    # This execution is intended for passive data collection
+    # Thing like receiving sensor data, and getting state from devices.
+    # This is not intended for active control of devices.
+    # For active control, we use the methods of the device objects. "device.turn_on()"
     def execute_plugins(self):
         for plugin in self.plugins:
             if plugin.active:
