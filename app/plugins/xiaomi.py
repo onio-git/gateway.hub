@@ -23,7 +23,7 @@ class xiaomi(PluginInterface):
         self.devices = {}
         self.active = False
         self.last_update = None
-        self.update_interval = 15
+        self.update_interval = 900
         self.api = api
         self.flow = flow
         self.config = config()
