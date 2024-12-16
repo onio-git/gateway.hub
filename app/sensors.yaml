@@ -120,7 +120,7 @@ sensors:
           max_value: 90
           period: 5 
           time_unit: hours
-    interval: 15  # in seconds. Time between each data point pushed to the server
+    interval: 900  # in seconds. Time between each data point pushed to the server
 
   - name: flower-care-A2
     address: b2:1e:60:f2:01:02 # Must be unique for each sensor, for your hub
@@ -163,4 +163,4 @@ sensors:
           max_value: 90
           period: 5 
           time_unit: hours
-    interval: 15  # in seconds. Time between each data point pushed to the server
+    interval: 900  # in seconds. Time between each data point pushed to the server
