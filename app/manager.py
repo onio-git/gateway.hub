@@ -2,6 +2,8 @@ import os
 import gpiod
 import time
 import subprocess
+import logging
+from log.log import setup_logging
 
 # Determine the script's directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +33,8 @@ def is_hub_running():
     return result.stdout != b''
 
 def start_hub():
-    subprocess.run(['python3', main_py])
+    # run non-blocking
+    subprocess.Popen(['python3', main_py])
 
 def stop_hub():
     subprocess.run(['pkill', '-f', 'main.py'])
@@ -52,6 +55,7 @@ def is_wifi_connected():
 
 
 if __name__ == '__main__':
+    setup_logging('info')
     try:
         network_check_delay = 0
         while True:
@@ -69,55 +73,56 @@ if __name__ == '__main__':
                     if not is_portal_running():
                         start_portal()
 
-                else:
-                    print("Checking for hostname conflict...")
-                    hostname = subprocess.run(['hostname'], stdout=subprocess.PIPE).stdout.decode().strip()
-                    # If there are any other devices with my hostname, change my hostname by adding a numeric suffix
-                    if subprocess.run(['ping', '-c', '1', f'{hostname}.local'], stdout=subprocess.PIPE).returncode == 0:
-                        print("Hostname conflict detected. Changing hostname...")
-                        hostname_suffix = 1
-                        while subprocess.run(['ping', '-c', '1', f'{hostname}-{hostname_suffix}.local'], stdout=subprocess.PIPE).returncode == 0:
-                            hostname_suffix += 1
+                ## Unstable behavior, disabled for now
+                # else:
+                #     print("Checking for hostname conflict...")
+                #     hostname = subprocess.run(['hostname'], stdout=subprocess.PIPE).stdout.decode().strip()
+                #     # If there are any other devices with my hostname, change my hostname by adding a numeric suffix
+                #     if subprocess.run(['ping', '-c', '1', f'{hostname}.local'], stdout=subprocess.PIPE).returncode == 0:
+                #         print("Hostname conflict detected. Changing hostname...")
+                #         hostname_suffix = 1
+                #         while subprocess.run(['ping', '-c', '1', f'{hostname}-{hostname_suffix}.local'], stdout=subprocess.PIPE).returncode == 0:
+                #             hostname_suffix += 1
                         
-                        new_hostname = f'{hostname}{hostname_suffix}'
+                #         new_hostname = f'{hostname}{hostname_suffix}'
                         
-                        # Update hostname
-                        subprocess.run(['hostnamectl', 'set-hostname', new_hostname])
+                #         # Update hostname
+                #         subprocess.run(['hostnamectl', 'set-hostname', new_hostname])
                         
-                        # Update /etc/hosts file
-                        try:
-                            # Read current hosts file
-                            with open('/etc/hosts', 'r') as file:
-                                hosts_content = file.readlines()
+                #         # Update /etc/hosts file
+                #         try:
+                #             # Read current hosts file
+                #             with open('/etc/hosts', 'r') as file:
+                #                 hosts_content = file.readlines()
                             
-                            # Create new hosts content
-                            new_hosts_content = []
-                            for line in hosts_content:
-                                if line.startswith('127.0.0.1') or line.startswith('::1'):
-                                    # Split the line into parts
-                                    parts = line.split()
-                                    # Keep the IP and 'localhost', add new hostname
-                                    if line.startswith('127.0.0.1'):
-                                        new_hosts_content.append(f'127.0.0.1\tlocalhost {new_hostname}\n')
-                                    else:  # ::1
-                                        new_hosts_content.append(f'::1\tlocalhost {new_hostname}\n')
-                                else:
-                                    new_hosts_content.append(line)
+                #             # Create new hosts content
+                #             new_hosts_content = []
+                #             for line in hosts_content:
+                #                 if line.startswith('127.0.0.1') or line.startswith('::1'):
+                #                     # Split the line into parts
+                #                     parts = line.split()
+                #                     # Keep the IP and 'localhost', add new hostname
+                #                     if line.startswith('127.0.0.1'):
+                #                         new_hosts_content.append(f'127.0.0.1\tlocalhost {new_hostname}\n')
+                #                     else:  # ::1
+                #                         new_hosts_content.append(f'::1\tlocalhost {new_hostname}\n')
+                #                 else:
+                #                     new_hosts_content.append(line)
                             
-                            # Write new hosts file
-                            with open('/etc/hosts', 'w') as file:
-                                file.writelines(new_hosts_content)
+                #             # Write new hosts file
+                #             with open('/etc/hosts', 'w') as file:
+                #                 file.writelines(new_hosts_content)
                             
-                            print(f"Hostname changed to {new_hostname} and /etc/hosts updated. Rebooting...")
-                            subprocess.run(['reboot'])
+                #             print(f"Hostname changed to {new_hostname} and /etc/hosts updated. Rebooting...")
+                #             subprocess.run(['reboot'])
                             
-                        except Exception as e:
-                            print(f"Error updating /etc/hosts: {e}")
-                            # Still reboot even if hosts file update fails
-                            subprocess.run(['reboot'])
+                #         except Exception as e:
+                #             print(f"Error updating /etc/hosts: {e}")
+                #             # Still reboot even if hosts file update fails
+                #             subprocess.run(['reboot'])
 
-
-            network_check_delay += 1
+            if network_check_delay < 30:
+                network_check_delay += 1
 
     except Exception as e:
         print("Error in manager: ", e)
