@@ -32,13 +32,20 @@ class xiaomi(PluginInterface):
         pass
 
     def execute(self) -> None:
-        if self.last_update == None or (datetime.now() - self.last_update).seconds > self.update_interval:
+        if self.last_update is None or (datetime.now() - self.last_update).seconds > self.update_interval:
             self.active = True
             self.last_update = datetime.now()
             for _, device in self.devices.items():
-                data = asyncio.run(device.connect_and_read())
+                data = None
+                for attempt in range(3):
+                    try:
+                        data = asyncio.run(device.connect_and_read())
+                        if data:
+                            break
+                    except Exception as e:
+                        logging.error(f"Attempt {attempt + 1} failed to read data from {device.mac_address} - {device.device_name}: {e}")
                 if not data:
-                    logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+                    logging.error(f"Failed to read data from {device.mac_address} - {device.device_name} after 3 attempts")
                     continue
                 jsn_data = {
                     "devid": device.mac_address,
