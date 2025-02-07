@@ -23,17 +23,22 @@
         </button>
 
         <section class="quick-actions">
-            <button class="action-button" onclick="refresh()">
-                <i class="fas fa-sync"></i>
-                Refresh
-            </button>
-            <button class="action-button" onclick="restart_services()">
-                <i class="fas fa-redo"></i>
-                Restart Services
-            </button>
             <button class="action-button" onclick="activate_hotspot()">
                 <i class="fas fa-wifi"></i>
                 Activate Hotspot
+            </button>
+            <button class="action-button" onclick="restart_services()">
+                <i class="fas fa-redo"></i>
+                Restart Hub Service
+            </button>
+            <button class="action-button {% if service_status != 'Running' %}disabled{% endif %}" onclick="stop_services()">
+                <i class="fas fa-stop"></i>
+                <!-- service status is either Running or Stopped -->
+                {% if service_status == 'Running' %}
+                    Stop Hub Service
+                {% else %}
+                    Hub Service Stopped
+                {% endif %}
             </button>
             <button class="action-button danger" onclick="hub_reboot()">
                 <i class="fas fa-power-off"></i>
@@ -224,11 +229,26 @@
             const response = await fetch('/restart_services');
             if (response.ok) {
                 alert_success('Services restarted');
+                setTimeout(refresh, 2000);
             } else {
                 alert_error('Failed to restart services');
             }
         } catch (error) {
             alert_error('Failed to restart services due to network error.');
+        }
+    }
+
+    async function stop_services() {
+        try {
+            const response = await fetch('/stop_services');
+            if (response.ok) {
+                alert_success('Services stopped');
+                setTimeout(refresh, 2000);
+            } else {
+                alert_error('Failed to stop services');
+            }
+        } catch (error) {
+            alert_error('Failed to stop services due to network error.');
         }
     }
 

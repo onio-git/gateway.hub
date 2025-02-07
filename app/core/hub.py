@@ -35,16 +35,23 @@ class Hub:
         # Comment out the plugins you don't want to load
         # Will later be managed by API
 
+
+        # These are loaded from the plugins.txt file. And can be managed by commands from the server
+        # self.load_plugin("null") # Sensor emulator plugin
+        # self.load_plugin("onio_ble") # ONiO BLE plugin
+        # self.load_plugin("philips_hue") # Philips hue experimental plugin
         self.load_plugin("null") # Sensor emulator plugin
         # self.load_plugin("onio_ble") # ONiO BLE plugin
         # self.load_plugin("philips_hue")  # Philips hue experimental plugin
 
         # self.load_plugin("xiaomi") # Xiaomi experimental plugin
         # self.load_plugin("sonos") # Sonos plugin
-        # self.load_plugin("flic") # Flic plugin
+        # self.load_plugin("flic") # Flic plugin (no work)
 
     def startup(self):
-        
+        self.get_plugins_from_file()
+
+
         # Disable this to avoid unnecessary geolocation requests and costs.
         # local_ap_list = self.wifi.scan_wifi_networks()
         # if local_ap_list is not None:
@@ -72,6 +79,7 @@ class Hub:
 
         # Initial scan
         self.scan_for_devices()
+        get_flow_delay = 0
 
         while True:
             try:
@@ -87,6 +95,8 @@ class Hub:
 
                     logging.info("Scan complete... Returning to main routine\n")
 
+
+
                 elif self.command == "execute-flow":
                     logging.info("Execute something")
                     logging.info(f"Command: {self.command} and meta_data: {self.meta_data}")
@@ -98,11 +108,32 @@ class Hub:
                     self.execute_plugins()
                     pass
 
-                
+                elif self.command.startswith("load_plugin"):
+                    plugin_name = self.command.split(":")[1]
+                    self.load_plugin(plugin_name)
+
+                elif self.command.startswith("unload_plugin"):
+                    plugin_name = self.command.split(":")[1]
+                    for plugin in self.plugins:
+                        if plugin.__class__.__name__ == plugin_name:
+                            self.plugins.remove(plugin)
+                            logging.info("Plugin unloaded: " + plugin_name)
+                            break
+
+
                 self.command = ""
                 time.sleep(period)
-                (self.command, self.meta_data) = self.api.ping_server(self.serial_hash,
-                                                                      self.cloud_logger.format_logs_to_json())
+
+                self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
+
+                # Get flow every 50 cycles. This should be replaced by
+                # a command from the server whenever a new flow is activated
+                if get_flow_delay > 50:
+                    if self.flow.set_flow(self.api.get_flow()):
+                        logging.info("Successfully retrieved flow")
+                    get_flow_delay = 0
+                else:
+                    get_flow_delay += 1
 
 
 
@@ -122,22 +153,62 @@ class Hub:
             plugin.display_devices()
 
     def load_plugin(self, plugin_name):
-        module = importlib.import_module(f"{self.plugin_dir}.{plugin_name}")
-        if not hasattr(module, plugin_name):
+        # Write plugin name as a new line in the plugins.txt file if the plugin is not already in the file
+        with open("plugins.txt", "r") as f:
+            if plugin_name not in f.read():
+                with open("plugins.txt", "a") as f:
+                    f.write(plugin_name)
+                    f.write("\n")
+        try:
+            module = importlib.import_module(f"{self.plugin_dir}.{plugin_name}")
+            if not hasattr(module, plugin_name):
+                logging.error(f"Plugin not found: {plugin_name}")
+                return
+            plugin_class = getattr(module, plugin_name)
+            plugin = plugin_class(api=self.api, flow=self.flow)
+            self.plugins.append(plugin)
+        except ModuleNotFoundError:
             logging.error(f"Plugin not found: {plugin_name}")
             return
-        plugin_class = getattr(module, plugin_name)
-        plugin = plugin_class(api=self.api, flow=self.flow)
-        self.plugins.append(plugin)
         logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
+
+
+    def unload_plugin(self, plugin_name):
+        for plugin in self.plugins:
+            if plugin.__class__.__name__ == plugin_name:
+                self.plugins.remove(plugin)
+                logging.info("Plugin unloaded: " + plugin_name)
+                # Remove plugin name from plugins.txt
+                with open("plugins.txt", "r") as f:
+                    lines = f.readlines()
+                    for i, line in enumerate(lines):
+                        if line == plugin_name:
+                            lines.pop(i)
+                            break
+
+                with open("plugins.txt", "w") as f:
+                    f.writelines(lines)
+                return
+
+
+    def get_plugins_from_file(self):
+        with open("plugins.txt", "r") as f:
+            plugins = f.readlines()
+            for plugin in plugins:
+                if plugin.startswith("#"):
+                    continue
+                self.load_plugin(plugin.strip())
+        return
+
 
     def scan_for_devices(self):
         for plugin in self.plugins:
             if plugin.protocol == 'BLE':
-                asyncio.run(self.ble.scan_by_plugin(plugin, timeout=10))
-
+                asyncio.run(self.ble.discover(plugin, timeout=5))
+                
             elif plugin.protocol == 'WiFi':
                 plugin.discover()
+
 
             elif plugin.protocol == 'Zigbee':
                 pass

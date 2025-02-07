@@ -55,20 +55,15 @@ class philips_hue(PluginInterface):
         self.devices = {}
         self.active = False
         self.last_execution = None
-        self.fetch_interval = 60  # in seconds
+        self.update_interval = 60  # in seconds
         self.api = api
         self.flow = flow
         self.command = ""
         self.meta_data = {}
 
-    def execute(self, command: str = '', meta_data: dict = {}) -> None:
-        self.command = command
-        self.meta_data = meta_data
-        logging.info(f"Executing Philips Hue Plugin with command: {command}, meta_data: {meta_data}")
-        if self.active:
+    def execute(self) -> None:
+        if self.last_execution is not None and time.time() - self.last_execution < self.update_interval:
             return
-        # if self.last_execution is not None and time.time() - self.last_execution < self.fetch_interval:
-        #     return
         self.active = True
         self.last_execution = time.time()
         asyncio.run(self.run_devices())
@@ -79,8 +74,8 @@ class philips_hue(PluginInterface):
         for node in self.flow.flow_table:
             if node.node_data.get('mac_address') == device.mac_address:
                 node.device = device
-            if node.node_name == "toggle":
-                node.function = device.toggle_light
+                if node.node_name == "toggle":
+                    node.function = device.toggle_light
 
     async def run_devices(self):
         for _, device in self.devices.items():

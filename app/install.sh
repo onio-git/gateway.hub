@@ -42,7 +42,7 @@ cd /opt/gateway.hub/app
 # Install Python dependencies (if applicable)
 sudo apt install -y python3 python3-pip python3-flask python3-waitress python3-bleak python3-yaml python3-pexpect \
                     network-manager dhcpcd dnsmasq iptables-persistent \
-                    wireless-tools sudo net-tools
+                    wireless-tools sudo net-tools python3-dbus python3-gi
 
 # Run any additional setup scripts
 if [ -f setup.sh ]; then
@@ -64,6 +64,13 @@ sudo cp SmarthubServer.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable SmarthubServer.service
 sudo systemctl restart SmarthubServer.service
+
+# Set up BLE advertiser service
+echo "Setting up BLE advertiser service..."
+sudo cp SmarthubAdvertiser.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable SmarthubAdvertiser.service
+sudo systemctl restart SmarthubAdvertiser.service
 
 
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=ONiO Smarthub BLE Advertiser Service
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/gateway.hub/app
+ExecStart=/usr/bin/python3 /opt/gateway.hub/app/BLEAdvertiser.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

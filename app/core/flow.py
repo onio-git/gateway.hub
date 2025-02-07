@@ -126,9 +126,12 @@ class Flow():
             return
 
         if node.function is None:
-            logging.error(f"Node {node.node_name} has no function, skipping execution")
+            logging.error(f"Node {node.node_name} has no function. passing data and resolving children")
         else:
-            await node.function(data=node.node_data)
+            result = await node.function(data=node.node_data)
+            if not result:
+                logging.error(f"Node {node.node_name} function returned False. skipping children")
+                return
         for vertex in node.outputs:
             child_node = self.get_node_by_id(vertex.child)
             if child_node:
@@ -143,10 +146,10 @@ class Flow():
         return None
 
 
-    def execute_flow(self) -> None:
+    async def execute_flow(self) -> None:
         for node in self.flow_table:
             if node.is_root:
-                self.execute_node(node)
+                await self.execute_node(node)
         print("Flow executed")
         return
 
