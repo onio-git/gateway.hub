@@ -14,6 +14,9 @@ from core.backend import ApiBackend
 from core.flow import Flow
 from log.log import CloudLogger
 
+from core.mpire_flow import ConfigurableWorkflow
+
+
 class Hub:
     def __init__(self, serial_no):
         self.config = ConfigSettings()
@@ -26,7 +29,8 @@ class Hub:
         
         self.api = ApiBackend()
         self.ble = BLEManager()
-        self.flow = Flow()
+        # self.flow = Flow()
+        self.flow = ConfigurableWorkflow()
 
         self.command = ""
         self.meta_data = ""
@@ -40,7 +44,7 @@ class Hub:
         # self.load_plugin("null") # Sensor emulator plugin
         # self.load_plugin("onio_ble") # ONiO BLE plugin
         # self.load_plugin("philips_hue") # Philips hue experimental plugin
-        self.load_plugin("null") # Sensor emulator plugin
+        # self.load_plugin("null") # Sensor emulator plugin
         # self.load_plugin("onio_ble") # ONiO BLE plugin
         # self.load_plugin("philips_hue")  # Philips hue experimental plugin
 
@@ -67,8 +71,10 @@ class Hub:
         if self.api.set_location(): 
             logging.info("Successfully updated hub location")
 
-        if self.flow.set_flow(self.api.get_flow()):
-            logging.info("Successfully retrieved flow")
+        flow_json = self.api.get_flow()
+        logging.info(flow_json)
+        # if self.flow.set_flow(self.api.get_flow()):
+        #     logging.info("Successfully retrieved flow")
 
         logging.info("Startup complete... Beginning main routine\n")
         self.cloud_logger.add_log_line("SYSTEM", "Startup complete... Beginning main routine")
@@ -124,7 +130,7 @@ class Hub:
                 self.command = ""
                 time.sleep(period)
 
-                self.command = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
+                (self.command, self.meta_data) = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
 
                 # Get flow every 50 cycles. This should be replaced by
                 # a command from the server whenever a new flow is activated
@@ -165,13 +171,13 @@ class Hub:
                 logging.error(f"Plugin not found: {plugin_name}")
                 return
             plugin_class = getattr(module, plugin_name)
-            plugin = plugin_class(api=self.api, flow=self.flow)
-            self.plugins.append(plugin)
+            logging.info(plugin_class)
+            # plugin = plugin_class(api=self.api, flow=self.flow)
+            # self.plugins.append(plugin)
         except ModuleNotFoundError:
             logging.error(f"Plugin not found: {plugin_name}")
             return
-        logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
-
+        # logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
 
     def unload_plugin(self, plugin_name):
         for plugin in self.plugins:
@@ -220,5 +226,5 @@ class Hub:
             if plugin.active:
                 continue
 
-            thread = threading.Thread(target=plugin.execute, args=(self.command, self.meta_data))
+            thread = threading.Thread(target=plugin.execute)
             thread.start()

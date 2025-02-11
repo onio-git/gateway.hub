@@ -32,12 +32,13 @@ class ApiBackend():
                 response = requests.get(url, headers=headers, timeout=timeout)
             else:
                 response = requests.post(url, json=json_data, headers=headers, timeout=timeout)
-            try: return json.loads(response.text)
-            except: return {'statusCode': response.status_code, 'data': response.text}
+            try:
+                return json.loads(response.text)
+            except:
+                return {'statusCode': response.status_code, 'data': response.text}
         except requests.RequestException as e:
             logging.error(f"Failed to make request to {url} due to {e}")
             return None
-
 
     def get_token(self, serial_hash: str) -> bool:
         json_data = {'serial_number': serial_hash}
@@ -100,13 +101,12 @@ class ApiBackend():
             logging.debug(response_data)
             return False
 
-
     def ping_server(self, serial_hash, logs) -> (str, dict):
         if self.api_token == "":
             logging.error("No API token found. Cannot ping server")
             self.get_token(serial_hash)
-            return ""
-        
+            return "", {}
+
         headers = self.get_headers(include_auth_token=True)
         json_data = logs
 
@@ -130,7 +130,6 @@ class ApiBackend():
             logging.error(json_data)
             logging.error(response_data)
             return "", {}
-
 
     def gapi_geolocation(self, local_ap_list: json) -> bool:
         gapi_url = self.config.get('server', 'gapi_url') + self.config.get('server', 'gapi_key')
@@ -159,7 +158,8 @@ class ApiBackend():
         }
 
         headers = self.get_headers(include_auth_token=True)
-        response_data = self.make_api_request(self.config.get('endpoints', 'set_location_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
+        response_data = self.make_api_request(self.config.get('endpoints', 'set_location_ep'), json_data, headers,
+                                              int(self.config.get('settings', 'http_timeout')))
 
         if response_data is None:
             logging.error("Failed to set location with server")
@@ -195,9 +195,9 @@ class ApiBackend():
                     "firmware": device.firmware
                 })
 
-
         headers = self.get_headers(include_auth_token=True)
-        response_data = self.make_api_request(self.config.get('endpoints', 'scan_data_ep'), json_data, headers, int(self.config.get('settings', 'http_timeout')))
+        response_data = self.make_api_request(self.config.get('endpoints', 'scan_data_ep'), json_data, headers,
+                                              int(self.config.get('settings', 'http_timeout')))
 
         if response_data is None:
             logging.error("Failed to post scan results to server")
@@ -218,7 +218,8 @@ class ApiBackend():
 
         logging.info(f"Sending data to API: {data}")
         headers = self.get_headers(include_auth_token=True)
-        response_data = self.make_api_request(self.config.get('endpoints', 'send_data_ep'), data, headers, int(self.config.get('settings', 'http_timeout')))
+        response_data = self.make_api_request(self.config.get('endpoints', 'send_data_ep'), data, headers,
+                                              int(self.config.get('settings', 'http_timeout')))
 
         if response_data is None:
             logging.error("Failed to send collected data to server")

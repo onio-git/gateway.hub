@@ -38,7 +38,8 @@ def get_hardware_id() -> str:
 
 
 @click.command()
-@click.option('--log-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical']), default='info', help='Set the log level')
+@click.option('--log-level', type=click.Choice(['debug', 'info', 'warning', 'error', 'critical']), default='info',
+              help='Set the log level')
 @click.option('--serial-number', help='The serial number of the hub', default='')
 @click.option('--auto-scan', help='Automatically scan for devices', default=False, is_flag=True)
 @click.option('--auto-collect', help='Automatically collect data from emulator device', default=False, is_flag=True)
@@ -46,7 +47,7 @@ def main(log_level, serial_number, auto_scan, auto_collect):
     setup_logging(log_level)
 
     if serial_number == '':
-        serial_number = get_hardware_id() # Using hardware ID as serial number
+        serial_number = get_hardware_id()  # Using hardware ID as serial number
     if serial_number == None:
         serial_number = config().get('settings', 'hub_serial_no')
         logging.error("Failed to get hardware ID - using default serial number: " + serial_number)
@@ -58,7 +59,6 @@ def main(log_level, serial_number, auto_scan, auto_collect):
     hostname = os.uname().nodename
     logging.info(f"Hostname: {hostname}")
     logging.info("Control panel: http://" + hostname + ".local")
-
 
     hub = Hub(serial_number)
 
@@ -80,12 +80,10 @@ def main(log_level, serial_number, auto_scan, auto_collect):
         startup_delay -= 1
 
     if hub.startup():
-        hub.loop(auto_collect, period=5)
+        print("test")
+        # hub.loop(auto_collect, period=5)
     else:
         logging.error("Failed to start Smart Hub.")
-
-
-
 
     logging.info("Exiting Smart Hub... End of Program")
     # KeyboardInterrupt here
@@ -95,6 +93,3 @@ def main(log_level, serial_number, auto_scan, auto_collect):
 
 if __name__ == "__main__":
     main()
-
-
-
