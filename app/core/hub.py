@@ -1,5 +1,3 @@
-
-
 import time
 import threading
 import importlib
@@ -25,12 +23,12 @@ class Hub:
         self.plugins = []
 
         self.serial = serial_no
-        self.serial_hash = md5(self.serial.encode()).hexdigest() # Hash the serial number for security
-        
+        self.serial_hash = md5(self.serial.encode()).hexdigest()  # Hash the serial number for security
+
         self.api = ApiBackend()
         self.ble = BLEManager()
         # self.flow = Flow()
-        self.flow = ConfigurableWorkflow()
+        self.flow = None
 
         self.command = ""
         self.meta_data = ""
@@ -38,7 +36,6 @@ class Hub:
         # Load plugins
         # Comment out the plugins you don't want to load
         # Will later be managed by API
-
 
         # These are loaded from the plugins.txt file. And can be managed by commands from the server
         # self.load_plugin("null") # Sensor emulator plugin
@@ -55,7 +52,6 @@ class Hub:
     def startup(self):
         self.get_plugins_from_file()
 
-
         # Disable this to avoid unnecessary geolocation requests and costs.
         # local_ap_list = self.wifi.scan_wifi_networks()
         # if local_ap_list is not None:
@@ -64,22 +60,46 @@ class Hub:
         #     else:
         #         logging.error("Failed to get location from Google API")
 
-            
-        if self.api.get_token(self.serial_hash): 
+        if self.api.get_token(self.serial_hash):
             logging.info("Successfully retrieved token from server")
 
-        if self.api.set_location(): 
+        if self.api.set_location():
             logging.info("Successfully updated hub location")
 
         flow_json = self.api.get_flow()
-        logging.info(flow_json)
+
+        new_drawflow = {
+            "drawflow": {
+                "Home": {
+                    "data": {}
+                }
+            }
+        }
+
+        for node_id, node_data in flow_json["flow"].items():
+            logging.info(node_data['data']['type'])
+            type = ""
+            match node_data['data']['type']:
+                case "when":
+                    type = "Event"
+                case "then":
+                    type = "Action"
+                case _:
+                    type = "Action"
+
+            new_drawflow["drawflow"]["Home"]["data"][node_id] = {
+                "id": node_data["id"],
+                "type": type,
+            }
+
+        logging.info(new_drawflow)
+        # self.flow = ConfigurableWorkflow(flow_json)
         # if self.flow.set_flow(self.api.get_flow()):
         #     logging.info("Successfully retrieved flow")
 
         logging.info("Startup complete... Beginning main routine\n")
         self.cloud_logger.add_log_line("SYSTEM", "Startup complete... Beginning main routine")
         return True
-    
 
     def loop(self, auto_collect, period=5):
 
@@ -126,11 +146,11 @@ class Hub:
                             logging.info("Plugin unloaded: " + plugin_name)
                             break
 
-
                 self.command = ""
                 time.sleep(period)
 
-                (self.command, self.meta_data) = self.api.ping_server(self.serial_hash, self.cloud_logger.format_logs_to_json())
+                (self.command, self.meta_data) = self.api.ping_server(self.serial_hash,
+                                                                      self.cloud_logger.format_logs_to_json())
 
                 # Get flow every 50 cycles. This should be replaced by
                 # a command from the server whenever a new flow is activated
@@ -196,7 +216,6 @@ class Hub:
                     f.writelines(lines)
                 return
 
-
     def get_plugins_from_file(self):
         with open("plugins.txt", "r") as f:
             plugins = f.readlines()
@@ -206,12 +225,11 @@ class Hub:
                 self.load_plugin(plugin.strip())
         return
 
-
     def scan_for_devices(self):
         for plugin in self.plugins:
             if plugin.protocol == 'BLE':
                 asyncio.run(self.ble.discover(plugin, timeout=5))
-                
+
             elif plugin.protocol == 'WiFi':
                 plugin.discover()
 
