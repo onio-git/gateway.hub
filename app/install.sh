@@ -44,11 +44,6 @@ sudo apt install -y python3 python3-pip python3-flask python3-waitress python3-b
                     network-manager dhcpcd dnsmasq iptables-persistent \
                     wireless-tools sudo net-tools python3-dbus python3-gi
 
-echo "Installing Flowpipe library..."
-python3 -m venv /opt/gateway.hub/app/venv
-source /opt/gateway.hub/app/venv/bin/activate
-pip install flowpipe
-
 # Run any additional setup scripts
 if [ -f setup.sh ]; then
     echo "Running setup script..."
