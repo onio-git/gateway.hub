@@ -11,7 +11,7 @@ from core.ble import BLEManager
 from core.backend import ApiBackend
 from core.flow import Flow
 from log.log import CloudLogger
-
+import json
 from core.mpire_flow import ConfigurableWorkflow
 
 
@@ -67,7 +67,9 @@ class Hub:
             logging.info("Successfully updated hub location")
 
         flow_json = self.api.get_flow()
+        ordered_flow = {k: flow_json["flow"][k] for k in sorted(flow_json["flow"].keys(), key=int)}
 
+        logging.info(f"Main Flow: {ordered_flow}")
         new_drawflow = {
             "drawflow": {
                 "Home": {
@@ -75,25 +77,117 @@ class Hub:
                 }
             }
         }
+        last_key = list(ordered_flow.keys())[-1]
+        for node_id, node_data in ordered_flow.items():
+            node_id_int = int(node_id)
+            next_node_id = str(node_id_int + 1)
+            logging.info(f"Node ID: {node_id} và Node Data: {node_data}")
+            metadata = {}
 
-        for node_id, node_data in flow_json["flow"].items():
-            logging.info(node_data['data']['type'])
-            type = ""
-            match node_data['data']['type']:
-                case "when":
-                    type = "Event"
-                case "then":
-                    type = "Action"
+            match node_data['data']['node']:
+                case "clock-event":
+                    metadata.update({
+                        "plugin_module": "plugins.system.time_scheduler",
+                        "plugin_function": "wait_for_time",
+                        "scheduled_time": node_data['data']['time']
+                    })
+                case "delay" | "loop-event":
+                    metadata.update({
+                        "plugin_module": "plugins.system.time_repeat",
+                        "plugin_function": "repeat_event",
+                        "interval": node_data['data']['value']
+                    })
+                case "turn-on" | "turn-off":
+                    if node_data['data']['node'] == "turn-on":
+                        plugin_function = "turn_on_light"
+                        value = 1
+                    else:
+                        plugin_function = "turn_off_light"
+                        value = 0
+                    metadata.update({
+                        "plugin_module": "plugins.philiphue.light",
+                        "plugin_function": plugin_function,
+                        "attributes": [
+                            {
+                                "uuid": "932c32bd-0002-47a2-835a-a8d455b859dd",
+                                "value": value
+                            }
+                        ],
+                    })
+                case "color":
+                    logging.info(node_data['data'])
+                    metadata.update({
+                        "plugin_module": "plugins.philiphue.light",
+                        "plugin_function": "change_color_and_brightness",
+                        "attributes": [
+                            {
+                                "uuid": "932c32bd-0005-47a2-835a-a8d455b859dd",
+                                "value": node_data['data']['color_picker']
+                            },
+                            {
+                                "uuid": "932c32bd-0003-47a2-835a-a8d455b859dd",
+                                "value": node_data['data']['brightness']
+                            }
+                        ],
+                    })
+                case "dimmer":
+                    metadata.update({
+                        "plugin_module": "plugins.philiphue.light",
+                        "plugin_function": "change_brightness",
+                        "attributes": [
+                            {
+                                "uuid": "932c32bd-0003-47a2-835a-a8d455b859dd",
+                                "value": node_data['data']['brightness']
+                            }
+                        ],
+                    })
                 case _:
-                    type = "Action"
+                    metadata.update({
+                        "plugin_module": "plugins.system.time_repeat",
+                        "plugin_function": "repeat_event",
+                        "interval": 10
+                    })
+
+            if 'type' in node_data['data']:
+                match node_data['data']['type']:
+                    case "when":
+                        type = "Event"
+                    case "then":
+                        type = "Action"
+                    case _:
+                        type = "Action"
+            else:
+                type = "Event"
+
+            if 'mac_address' in node_data['data']:
+                metadata["mac_address"] = node_data['data']['mac_address']
+
+            outputs = {}
+            if node_id != last_key:
+                match type:
+                    case "Event":
+                        outputs = {
+                            "success": {
+                                "connections": [{"node": next_node_id, "output": "previous_data"}]
+                            }
+                        }
+                    case "Action":
+                        outputs = {
+                            "success": {
+                                "connections": [{"node": next_node_id, "output": "event_name"}]
+                            }
+                        }
 
             new_drawflow["drawflow"]["Home"]["data"][node_id] = {
-                "id": node_data["id"],
+                "id": node_id,
+                "name": f"Light {node_id}",
                 "type": type,
+                "metadata": metadata,
+                "outputs": outputs
             }
 
-        logging.info(new_drawflow)
-        # self.flow = ConfigurableWorkflow(flow_json)
+        logging.info(f"New Drawflow: {new_drawflow}")
+        self.flow = ConfigurableWorkflow(new_drawflow)
         # if self.flow.set_flow(self.api.get_flow()):
         #     logging.info("Successfully retrieved flow")
 
@@ -104,11 +198,13 @@ class Hub:
     def loop(self, auto_collect, period=5):
 
         # Initial scan
-        self.scan_for_devices()
+        # self.scan_for_devices()
         get_flow_delay = 0
-
+        logging.info("Before Main loop")
+        self.flow.evaluate_loop()
         while True:
             try:
+                logging.info("Main loop")
                 if self.command == "rebooting":
                     logging.info("Rebooting...")
                     self.shutdown()
@@ -134,17 +230,17 @@ class Hub:
                     self.execute_plugins()
                     pass
 
-                elif self.command.startswith("load_plugin"):
-                    plugin_name = self.command.split(":")[1]
-                    self.load_plugin(plugin_name)
-
-                elif self.command.startswith("unload_plugin"):
-                    plugin_name = self.command.split(":")[1]
-                    for plugin in self.plugins:
-                        if plugin.__class__.__name__ == plugin_name:
-                            self.plugins.remove(plugin)
-                            logging.info("Plugin unloaded: " + plugin_name)
-                            break
+                # elif self.command.startswith("load_plugin"):
+                #     plugin_name = self.command.split(":")[1]
+                #     self.load_plugin(plugin_name)
+                #
+                # elif self.command.startswith("unload_plugin"):
+                #     plugin_name = self.command.split(":")[1]
+                #     for plugin in self.plugins:
+                #         if plugin.__class__.__name__ == plugin_name:
+                #             self.plugins.remove(plugin)
+                #             logging.info("Plugin unloaded: " + plugin_name)
+                #             break
 
                 self.command = ""
                 time.sleep(period)
@@ -191,13 +287,12 @@ class Hub:
                 logging.error(f"Plugin not found: {plugin_name}")
                 return
             plugin_class = getattr(module, plugin_name)
-            logging.info(plugin_class)
-            # plugin = plugin_class(api=self.api, flow=self.flow)
-            # self.plugins.append(plugin)
+            plugin = plugin_class(api=self.api, flow=self.flow)
+            self.plugins.append(plugin)
         except ModuleNotFoundError:
             logging.error(f"Plugin not found: {plugin_name}")
             return
-        # logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
+        logging.info("Plugin loaded: " + str(plugin.__class__.__name__))
 
     def unload_plugin(self, plugin_name):
         for plugin in self.plugins:

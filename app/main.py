@@ -80,8 +80,8 @@ def main(log_level, serial_number, auto_scan, auto_collect):
         startup_delay -= 1
 
     if hub.startup():
-        print("test")
-        # hub.loop(auto_collect, period=5)
+        hub.loop(auto_collect, period=5)
+        logging.info("Smart Hub Loop successfully.")
     else:
         logging.error("Failed to start Smart Hub.")
 

@@ -1,7 +1,8 @@
 from flowpipe import Graph, Node
 import threading
 import importlib
-
+import time
+import logging
 
 def load_plugin(module_path, function_name):
     """Dynamic plugin loader."""
@@ -22,14 +23,14 @@ def EventNode(event_name, node_meta):
     # Load plugin and execute
     plugin = load_plugin(plugin_module, plugin_function)
     event_data = plugin(event_name, node_meta)
-    print(f"Event triggered: {event_data}")
+    logging.info(f"Event triggered: {event_data}")
     return {"success": event_data}
 
 
 @Node(outputs=["success", "unsuccess", "fail"])
 def NodeCondition(event, node_meta):
     """Condition node with three outputs: success, unsuccess, and fail."""
-    print(f"Evaluating condition for event: {event} with metadata: {node_meta}")
+    logging.info(f"Evaluating condition for event: {event} with metadata: {node_meta}")
     try:
         if event and event.get("event_name") == "button_pressed":
             print("Condition met: Success")
@@ -45,6 +46,7 @@ def NodeCondition(event, node_meta):
 @Node(outputs=["success", "unsuccess", "fail"])
 def ActionNode(previous_data, node_meta):
     """Action node to perform an action."""
+    logging.info("Action Node")
     # print(f"Performing action for previous data: {previous_data} with metadata: {node_meta}")
     plugin_module = node_meta.get("plugin_module")
     plugin_function = node_meta.get("plugin_function")
@@ -55,14 +57,13 @@ def ActionNode(previous_data, node_meta):
     # Load plugin and execute
     plugin = load_plugin(plugin_module, plugin_function)
     result = plugin(previous_data, node_meta)
-    # print(f"Plugin {plugin_module}.{plugin_function} executed with result: {result}")
+    logging.info(f"Plugin {plugin_module}.{plugin_function} executed with result: {result}")
     return {"success": result}
 
 
 def convert_drawflow_to_config(drawflow):
     nodes = {}
     connections = []
-
     for node_id, node_data in drawflow["drawflow"]["Home"]["data"].items():
         node_metadata = node_data.get("metadata", {})
         node_metadata["id"] = node_id
@@ -95,7 +96,6 @@ class ConfigurableWorkflow:
 
         config = convert_drawflow_to_config(drawflow_config)
         self.nodes = {}
-
         # Create nodes based on config
         for node_id, node_data in config["nodes"].items():
             node_metadata = node_data["metadata"]
@@ -114,9 +114,11 @@ class ConfigurableWorkflow:
             source_output = connection["source_output"]
             target_input = connection["target_input"]
 
-            print(f"Connecting {source_id}.{source_output} to {target_id}.{target_input}")
+            logging.info(f"Connecting {source_id}.{source_output} to {target_id}.{target_input}")
 
             if source_id in self.nodes and target_id in self.nodes:
+                logging.info(self.nodes[target_id].inputs)
+                logging.info(connection["target_input"])
                 self.nodes[source_id].outputs[source_output].connect(self.nodes[target_id].inputs[target_input])
             else:
                 print(f"Error: Node {source_id} or {target_id} is not defined in the configuration.")
@@ -131,19 +133,20 @@ class ConfigurableWorkflow:
         iteration = 0
         while auto_restart:
             iteration += 1
-            print(f"\n--- Starting Workflow Iteration {iteration} ---")
+            logging.info(f"\n--- Starting Workflow Iteration {iteration} ---")
             self.graph.evaluate()
-            print(f"--- Workflow Iteration {iteration} Completed ---")
+            logging.info(f"--- Workflow Iteration {iteration} Completed ---")
 
             # Kiểm tra nếu đạt đến số vòng lặp tối đa
             if max_iterations and iteration >= max_iterations:
-                print("Reached maximum iterations. Stopping workflow.")
+                logging.info("Reached maximum iterations. Stopping workflow.")
                 break
             time.sleep(1)
 
     def run_events(self):
         """Run all event nodes in parallel."""
         threads = []
+        logging.info(f"Nodesssssssssssssssssssssssss: {self.nodes}")
         for node_id, node in self.nodes.items():
             # print(node)
             if "Event" in node.name:  # Chỉ chạy các node Event
