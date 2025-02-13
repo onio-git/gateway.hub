@@ -15,6 +15,31 @@ import json
 from core.mpire_flow import ConfigurableWorkflow
 
 
+def _check_type(type_event: str) -> str:
+    match type_event:
+        case "when":
+            type = "Event"
+        case "then":
+            type = "Action"
+        case _:
+            type = "Action"
+    return type
+
+
+def _outputs_connection(next_type_output: str, next_node_id: str) -> dict:
+    output_connection = {}
+    match next_type_output:
+        case "Event":
+            output_connection.update(
+                {"node": next_node_id, "output": "event_name"}
+            )
+        case "Action":
+            output_connection.update(
+                {"node": next_node_id, "output": "previous_data"}
+            )
+    return output_connection
+
+
 class Hub:
     def __init__(self, serial_no):
         self.config = ConfigSettings()
@@ -84,6 +109,33 @@ class Hub:
             logging.info(f"Node ID: {node_id} và Node Data: {node_data}")
             metadata = {}
 
+            print(f"Đang xử lý item {node_id}")
+            outputs = {}
+            outputs_data = node_data.get("outputs", {})
+            logging.info(f"Outputs data: {outputs_data}")
+            outputs_connections = []
+            for output_key, output in outputs_data.items():
+                connections = output.get("connections", [])
+                for connection in connections:
+                    next_node = connection.get("node")
+                    logging.info(f"Kết nối từ {node_id} đến {next_node}")
+                    if next_node:
+                        # Kiểm tra xem node đó có tồn tại trong dict không
+                        if next_node in ordered_flow:
+                            next_item = ordered_flow[next_node]
+                            if 'type' in next_item['data']:
+                                next_item_type = _check_type(next_item['data']['type'])
+                            else:
+                                next_item_type = "Event"
+                            next_item_connection = _outputs_connection(next_item_type, next_node)
+                            logging.info(f"Next item type: {next_item_type}, output connection: {next_item_connection}")
+                            outputs_connections.append(next_item_connection)
+            outputs.update({
+                "success": {
+                    "connections": outputs_connections
+                }
+            })
+
             match node_data['data']['node']:
                 case "clock-event":
                     metadata.update({
@@ -149,34 +201,12 @@ class Hub:
                     })
 
             if 'type' in node_data['data']:
-                match node_data['data']['type']:
-                    case "when":
-                        type = "Event"
-                    case "then":
-                        type = "Action"
-                    case _:
-                        type = "Action"
+                type = _check_type(node_data['data']['type'])
             else:
                 type = "Event"
 
             if 'mac_address' in node_data['data']:
                 metadata["mac_address"] = node_data['data']['mac_address']
-
-            outputs = {}
-            if node_id != last_key:
-                match type:
-                    case "Event":
-                        outputs = {
-                            "success": {
-                                "connections": [{"node": next_node_id, "output": "previous_data"}]
-                            }
-                        }
-                    case "Action":
-                        outputs = {
-                            "success": {
-                                "connections": [{"node": next_node_id, "output": "event_name"}]
-                            }
-                        }
 
             new_drawflow["drawflow"]["Home"]["data"][node_id] = {
                 "id": node_id,

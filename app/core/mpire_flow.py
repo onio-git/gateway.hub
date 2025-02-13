@@ -28,7 +28,7 @@ def EventNode(event_name, node_meta):
 
 
 @Node(outputs=["success", "unsuccess", "fail"])
-def NodeCondition(event, node_meta):
+def ConditionNode(event, node_meta):
     """Condition node with three outputs: success, unsuccess, and fail."""
     logging.info(f"Evaluating condition for event: {event} with metadata: {node_meta}")
     try:
@@ -103,7 +103,7 @@ class ConfigurableWorkflow:
             if node_data["type"] == "Event":
                 self.nodes[node_id] = EventNode(name=node_data["name"], graph=self.graph, node_meta=node_metadata)
             elif node_data["type"] == "Condition":
-                self.nodes[node_id] = NodeCondition(name=node_data["name"], graph=self.graph, node_meta=node_metadata)
+                self.nodes[node_id] = ConditionNode(name=node_data["name"], graph=self.graph, node_meta=node_metadata)
             elif node_data["type"] == "Action":
                 self.nodes[node_id] = ActionNode(name=node_data["name"], graph=self.graph, node_meta=node_metadata)
 

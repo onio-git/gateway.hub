@@ -2,6 +2,7 @@ import logging
 import asyncio
 import pexpect
 from bleak import BleakClient
+import time
 
 LIGHT_CHARACTERISTIC = "932c32bd-0002-47a2-835a-a8d455b859dd"
 BRIGHTNESS_CHARACTERISTIC = "932c32bd-0003-47a2-835a-a8d455b859dd"
@@ -35,7 +36,10 @@ def turn_on_light(event, metadata):
 
     # Mô phỏng bật đèn
     async def async_write():
+        start_time = time.perf_counter()
         await pair_and_trust(mac_address)
+        end_time = time.perf_counter()
+        logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
         async with BleakClient(mac_address) as client:
             if not client.is_connected:
                 logging.error(f"Bleak failed to connect to {mac_address}")
@@ -59,10 +63,6 @@ def turn_on_light(event, metadata):
                                 byte_value = characteristic_value.encode('utf-8')
                             elif isinstance(characteristic_value, int):
                                 byte_value = bytes([characteristic_value])
-                        # elif characteristic_uuid == COLOR_CHARACTERISTIC:
-                        #     byte_value = hex_to_rgb(characteristic_value)
-                        # elif characteristic_uuid == BRIGHTNESS_CHARACTERISTIC:
-                        #     byte_value = percentage_to_brightness(characteristic_value)
 
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
@@ -79,7 +79,10 @@ def turn_off_light(event, metadata):
 
     # Mô phỏng bật đèn
     async def async_write():
+        start_time = time.perf_counter()
         await pair_and_trust(mac_address)
+        end_time = time.perf_counter()
+        logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
         async with BleakClient(mac_address) as client:
             if not client.is_connected:
                 logging.error(f"Bleak failed to connect to {mac_address}")
@@ -116,7 +119,10 @@ def change_color_and_brightness(event, metadata):
     mac_address = "D9:18:8C:77:8F:F3"
 
     async def async_write():
+        start_time = time.perf_counter()
         await pair_and_trust(mac_address)
+        end_time = time.perf_counter()
+        logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
         async with BleakClient(mac_address) as client:
             if not client.is_connected:
                 logging.error(f"Bleak failed to connect to {mac_address}")
@@ -152,7 +158,10 @@ def change_brightness(event, metadata):
     mac_address = "D9:18:8C:77:8F:F3"
 
     async def async_write():
+        start_time = time.perf_counter()
         await pair_and_trust(mac_address)
+        end_time = time.perf_counter()
+        logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
         async with BleakClient(mac_address) as client:
             if not client.is_connected:
                 logging.error(f"Bleak failed to connect to {mac_address}")

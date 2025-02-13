@@ -11,9 +11,3 @@ def repeat_event(event_name, metadata):
     event_data = {"event_name": event_name, "metadata": metadata}
 
     return event_data
-
-    # while True:
-    #     print(f"Triggering event: {event_name}")
-    #     event_data = {"event_name": event_name, "metadata": metadata}
-    #     yield event_data  # Trả về sự kiện
-    #     time.sleep(interval)  # Chờ khoảng thời gian lặp
