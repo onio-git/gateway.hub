@@ -13,6 +13,8 @@ from core.flow import Flow
 from log.log import CloudLogger
 import json
 from core.mpire_flow import ConfigurableWorkflow
+from core.mpire_flow_manager import FlowManager
+from concurrent.futures import ThreadPoolExecutor
 
 
 def _check_type(type_event: str) -> str:
@@ -38,6 +40,134 @@ def _outputs_connection(next_type_output: str, next_node_id: str) -> dict:
                 {"node": next_node_id, "output": "previous_data"}
             )
     return output_connection
+
+
+def _flow_etl(flow_json: dict) -> dict:
+    ordered_flow = {k: flow_json["flow"][k] for k in sorted(flow_json["flow"].keys(), key=int)}
+
+    logging.info(f"Main Flow: {ordered_flow}")
+    new_drawflow = {
+        "drawflow": {
+            "Home": {
+                "data": {}
+            }
+        }
+    }
+    for node_id, node_data in ordered_flow.items():
+        node_id_int = int(node_id)
+        next_node_id = str(node_id_int + 1)
+        logging.info(f"Node ID: {node_id} và Node Data: {node_data}")
+        metadata = {}
+
+        print(f"Đang xử lý item {node_id}")
+        outputs = {}
+        outputs_data = node_data.get("outputs", {})
+        logging.info(f"Outputs data: {outputs_data}")
+        outputs_connections = []
+        for output_key, output in outputs_data.items():
+            connections = output.get("connections", [])
+            for connection in connections:
+                next_node = connection.get("node")
+                logging.info(f"Kết nối từ {node_id} đến {next_node}")
+                if next_node:
+                    # Kiểm tra xem node đó có tồn tại trong dict không
+                    if next_node in ordered_flow:
+                        next_item = ordered_flow[next_node]
+                        if 'type' in next_item['data']:
+                            next_item_type = _check_type(next_item['data']['type'])
+                        else:
+                            next_item_type = "Event"
+                        next_item_connection = _outputs_connection(next_item_type, next_node)
+                        logging.info(f"Next item type: {next_item_type}, output connection: {next_item_connection}")
+                        outputs_connections.append(next_item_connection)
+        outputs.update({
+            "success": {
+                "connections": outputs_connections
+            }
+        })
+
+        match node_data['data']['node']:
+            case "clock-event":
+                metadata.update({
+                    "plugin_module": "plugins.system.time_scheduler",
+                    "plugin_function": "wait_for_time",
+                    "scheduled_time": node_data['data']['time']
+                })
+            case "delay" | "loop-event":
+                metadata.update({
+                    "plugin_module": "plugins.system.time_repeat",
+                    "plugin_function": "repeat_event",
+                    "interval": node_data['data']['value']
+                })
+            case "turn-on" | "turn-off":
+                if node_data['data']['node'] == "turn-on":
+                    plugin_function = "turn_on_light"
+                    value = 1
+                else:
+                    plugin_function = "turn_off_light"
+                    value = 0
+                metadata.update({
+                    "plugin_module": "plugins.philiphue.light",
+                    "plugin_function": plugin_function,
+                    "attributes": [
+                        {
+                            "uuid": "932c32bd-0002-47a2-835a-a8d455b859dd",
+                            "value": value
+                        }
+                    ],
+                })
+            case "color":
+                logging.info(node_data['data'])
+                metadata.update({
+                    "plugin_module": "plugins.philiphue.light",
+                    "plugin_function": "change_color_and_brightness",
+                    "attributes": [
+                        {
+                            "uuid": "932c32bd-0005-47a2-835a-a8d455b859dd",
+                            "value": node_data['data']['color_picker']
+                        },
+                        {
+                            "uuid": "932c32bd-0003-47a2-835a-a8d455b859dd",
+                            "value": node_data['data']['brightness']
+                        }
+                    ],
+                })
+            case "dimmer":
+                metadata.update({
+                    "plugin_module": "plugins.philiphue.light",
+                    "plugin_function": "change_brightness",
+                    "attributes": [
+                        {
+                            "uuid": "932c32bd-0003-47a2-835a-a8d455b859dd",
+                            "value": node_data['data']['brightness']
+                        }
+                    ],
+                })
+            case _:
+                metadata.update({
+                    "plugin_module": "plugins.system.time_repeat",
+                    "plugin_function": "repeat_event",
+                    "interval": 10
+                })
+
+        if 'type' in node_data['data']:
+            type = _check_type(node_data['data']['type'])
+        else:
+            type = "Event"
+
+        if 'mac_address' in node_data['data']:
+            metadata["mac_address"] = node_data['data']['mac_address']
+
+        new_drawflow["drawflow"]["Home"]["data"][node_id] = {
+            "id": node_id,
+            "name": f"Light {node_id}",
+            "type": type,
+            "metadata": metadata,
+            "outputs": outputs
+        }
+
+    logging.info(f"New Drawflow: {new_drawflow}")
+    return new_drawflow
 
 
 class Hub:
@@ -76,7 +206,6 @@ class Hub:
 
     def startup(self):
         self.get_plugins_from_file()
-
         # Disable this to avoid unnecessary geolocation requests and costs.
         # local_ap_list = self.wifi.scan_wifi_networks()
         # if local_ap_list is not None:
@@ -92,131 +221,7 @@ class Hub:
             logging.info("Successfully updated hub location")
 
         flow_json = self.api.get_flow()
-        ordered_flow = {k: flow_json["flow"][k] for k in sorted(flow_json["flow"].keys(), key=int)}
-
-        logging.info(f"Main Flow: {ordered_flow}")
-        new_drawflow = {
-            "drawflow": {
-                "Home": {
-                    "data": {}
-                }
-            }
-        }
-        last_key = list(ordered_flow.keys())[-1]
-        for node_id, node_data in ordered_flow.items():
-            node_id_int = int(node_id)
-            next_node_id = str(node_id_int + 1)
-            logging.info(f"Node ID: {node_id} và Node Data: {node_data}")
-            metadata = {}
-
-            print(f"Đang xử lý item {node_id}")
-            outputs = {}
-            outputs_data = node_data.get("outputs", {})
-            logging.info(f"Outputs data: {outputs_data}")
-            outputs_connections = []
-            for output_key, output in outputs_data.items():
-                connections = output.get("connections", [])
-                for connection in connections:
-                    next_node = connection.get("node")
-                    logging.info(f"Kết nối từ {node_id} đến {next_node}")
-                    if next_node:
-                        # Kiểm tra xem node đó có tồn tại trong dict không
-                        if next_node in ordered_flow:
-                            next_item = ordered_flow[next_node]
-                            if 'type' in next_item['data']:
-                                next_item_type = _check_type(next_item['data']['type'])
-                            else:
-                                next_item_type = "Event"
-                            next_item_connection = _outputs_connection(next_item_type, next_node)
-                            logging.info(f"Next item type: {next_item_type}, output connection: {next_item_connection}")
-                            outputs_connections.append(next_item_connection)
-            outputs.update({
-                "success": {
-                    "connections": outputs_connections
-                }
-            })
-
-            match node_data['data']['node']:
-                case "clock-event":
-                    metadata.update({
-                        "plugin_module": "plugins.system.time_scheduler",
-                        "plugin_function": "wait_for_time",
-                        "scheduled_time": node_data['data']['time']
-                    })
-                case "delay" | "loop-event":
-                    metadata.update({
-                        "plugin_module": "plugins.system.time_repeat",
-                        "plugin_function": "repeat_event",
-                        "interval": node_data['data']['value']
-                    })
-                case "turn-on" | "turn-off":
-                    if node_data['data']['node'] == "turn-on":
-                        plugin_function = "turn_on_light"
-                        value = 1
-                    else:
-                        plugin_function = "turn_off_light"
-                        value = 0
-                    metadata.update({
-                        "plugin_module": "plugins.philiphue.light",
-                        "plugin_function": plugin_function,
-                        "attributes": [
-                            {
-                                "uuid": "932c32bd-0002-47a2-835a-a8d455b859dd",
-                                "value": value
-                            }
-                        ],
-                    })
-                case "color":
-                    logging.info(node_data['data'])
-                    metadata.update({
-                        "plugin_module": "plugins.philiphue.light",
-                        "plugin_function": "change_color_and_brightness",
-                        "attributes": [
-                            {
-                                "uuid": "932c32bd-0005-47a2-835a-a8d455b859dd",
-                                "value": node_data['data']['color_picker']
-                            },
-                            {
-                                "uuid": "932c32bd-0003-47a2-835a-a8d455b859dd",
-                                "value": node_data['data']['brightness']
-                            }
-                        ],
-                    })
-                case "dimmer":
-                    metadata.update({
-                        "plugin_module": "plugins.philiphue.light",
-                        "plugin_function": "change_brightness",
-                        "attributes": [
-                            {
-                                "uuid": "932c32bd-0003-47a2-835a-a8d455b859dd",
-                                "value": node_data['data']['brightness']
-                            }
-                        ],
-                    })
-                case _:
-                    metadata.update({
-                        "plugin_module": "plugins.system.time_repeat",
-                        "plugin_function": "repeat_event",
-                        "interval": 10
-                    })
-
-            if 'type' in node_data['data']:
-                type = _check_type(node_data['data']['type'])
-            else:
-                type = "Event"
-
-            if 'mac_address' in node_data['data']:
-                metadata["mac_address"] = node_data['data']['mac_address']
-
-            new_drawflow["drawflow"]["Home"]["data"][node_id] = {
-                "id": node_id,
-                "name": f"Light {node_id}",
-                "type": type,
-                "metadata": metadata,
-                "outputs": outputs
-            }
-
-        logging.info(f"New Drawflow: {new_drawflow}")
+        new_drawflow = _flow_etl(flow_json)
         self.flow = ConfigurableWorkflow(new_drawflow)
         # if self.flow.set_flow(self.api.get_flow()):
         #     logging.info("Successfully retrieved flow")
@@ -231,7 +236,11 @@ class Hub:
         # self.scan_for_devices()
         get_flow_delay = 0
         logging.info("Before Main loop")
-        self.flow.evaluate_loop()
+
+        thread_flow = threading.Thread(target=self.flow.evaluate_loop, name="Test")
+        logging.info(f"Thread flow {thread_flow.name}")
+        thread_flow.start()
+
         while True:
             try:
                 logging.info("Main loop")
@@ -280,9 +289,10 @@ class Hub:
 
                 # Get flow every 50 cycles. This should be replaced by
                 # a command from the server whenever a new flow is activated
-                if get_flow_delay > 50:
-                    if self.flow.set_flow(self.api.get_flow()):
-                        logging.info("Successfully retrieved flow")
+                if get_flow_delay > 3:
+                    flow_json = self.api.get_flow()
+                    new_drawflow = _flow_etl(flow_json)
+                    self.flow = ConfigurableWorkflow(new_drawflow)
                     get_flow_delay = 0
                 else:
                     get_flow_delay += 1
