@@ -91,7 +91,7 @@ def convert_drawflow_to_config(drawflow):
 class ConfigurableWorkflow:
     """Workflow that builds its graph from a JSON configuration."""
 
-    def __init__(self, drawflow_config):
+    def __init__(self, drawflow_config: dict):
         self.graph = Graph()
 
         config = convert_drawflow_to_config(drawflow_config)
@@ -114,11 +114,8 @@ class ConfigurableWorkflow:
             source_output = connection["source_output"]
             target_input = connection["target_input"]
 
-            logging.info(f"Connecting {source_id}.{source_output} to {target_id}.{target_input}")
 
             if source_id in self.nodes and target_id in self.nodes:
-                logging.info(self.nodes[target_id].inputs)
-                logging.info(connection["target_input"])
                 self.nodes[source_id].outputs[source_output].connect(self.nodes[target_id].inputs[target_input])
             else:
                 print(f"Error: Node {source_id} or {target_id} is not defined in the configuration.")
@@ -146,7 +143,6 @@ class ConfigurableWorkflow:
     def run_events(self):
         """Run all event nodes in parallel."""
         threads = []
-        logging.info(f"Nodesssssssssssssssssssssssss: {self.nodes}")
         for node_id, node in self.nodes.items():
             # print(node)
             if "Event" in node.name:  # Chỉ chạy các node Event

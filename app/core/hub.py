@@ -56,19 +56,16 @@ def _flow_etl(flow_json: dict) -> dict:
     for node_id, node_data in ordered_flow.items():
         node_id_int = int(node_id)
         next_node_id = str(node_id_int + 1)
-        logging.info(f"Node ID: {node_id} và Node Data: {node_data}")
+        # logging.info(f"Node ID: {node_id} và Node Data: {node_data}")
         metadata = {}
 
-        print(f"Đang xử lý item {node_id}")
         outputs = {}
         outputs_data = node_data.get("outputs", {})
-        logging.info(f"Outputs data: {outputs_data}")
         outputs_connections = []
         for output_key, output in outputs_data.items():
             connections = output.get("connections", [])
             for connection in connections:
                 next_node = connection.get("node")
-                logging.info(f"Kết nối từ {node_id} đến {next_node}")
                 if next_node:
                     # Kiểm tra xem node đó có tồn tại trong dict không
                     if next_node in ordered_flow:
@@ -78,7 +75,7 @@ def _flow_etl(flow_json: dict) -> dict:
                         else:
                             next_item_type = "Event"
                         next_item_connection = _outputs_connection(next_item_type, next_node)
-                        logging.info(f"Next item type: {next_item_type}, output connection: {next_item_connection}")
+                        # logging.info(f"Next item type: {next_item_type}, output connection: {next_item_connection}")
                         outputs_connections.append(next_item_connection)
         outputs.update({
             "success": {
@@ -166,7 +163,7 @@ def _flow_etl(flow_json: dict) -> dict:
             "outputs": outputs
         }
 
-    logging.info(f"New Drawflow: {new_drawflow}")
+    # logging.info(f"New Drawflow: {new_drawflow}")
     return new_drawflow
 
 
@@ -184,6 +181,7 @@ class Hub:
         self.ble = BLEManager()
         # self.flow = Flow()
         self.flow = None
+        self.flow_manager = []
 
         self.command = ""
         self.meta_data = ""
@@ -223,6 +221,12 @@ class Hub:
         flow_json = self.api.get_flow()
         new_drawflow = _flow_etl(flow_json)
         self.flow = ConfigurableWorkflow(new_drawflow)
+        # thread_flow = threading.Thread(target=flow.evaluate_loop, name="Test")
+        # self.flow_manager.append({
+        #     "flow": new_drawflow,
+        #     "thread": thread_flow
+        # })
+        logging.info(f"Danh sach Flow: {self.flow_manager}")
         # if self.flow.set_flow(self.api.get_flow()):
         #     logging.info("Successfully retrieved flow")
 
@@ -236,11 +240,15 @@ class Hub:
         # self.scan_for_devices()
         get_flow_delay = 0
         logging.info("Before Main loop")
-
-        thread_flow = threading.Thread(target=self.flow.evaluate_loop, name="Test")
-        logging.info(f"Thread flow {thread_flow.name}")
-        thread_flow.start()
-
+        logging.info(f"Danh sach Flow: {self.flow_manager}")
+        self.flow.evaluate_loop()
+        # thread_flow = threading.Thread(target=self.flow.evaluate_loop, name="Test")
+        # logging.info(f"Thread flow {thread_flow}")
+        # thread_flow.start()
+        # task_event = threading.Event()
+        # task_event.set()
+        # for flow in self.flow_manager:
+        #     flow['thread'].start()
         while True:
             try:
                 logging.info("Main loop")
@@ -293,6 +301,8 @@ class Hub:
                     flow_json = self.api.get_flow()
                     new_drawflow = _flow_etl(flow_json)
                     self.flow = ConfigurableWorkflow(new_drawflow)
+                    # self.flow_manager.clear()
+                    # self.flow_manager.append(flow)
                     get_flow_delay = 0
                 else:
                     get_flow_delay += 1
