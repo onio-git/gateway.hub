@@ -68,7 +68,7 @@ Once you have successfully SSH'd into the Pi:
 11. **Download the install script from the remote repository**:
 
     ```bash
-    wget https://raw.githubusercontent.com/onio-git/gateway.hub/refs/heads/master/app/install.sh
+    wget https://raw.githubusercontent.com/onio-git/gateway.hub/refs/heads/researching-architecture-flowpipe/app/install.sh
     ```
 
 12. **Set the script permissions**:

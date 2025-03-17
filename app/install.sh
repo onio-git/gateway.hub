@@ -26,7 +26,7 @@ if [ -d "$REPO_DIR/.git" ]; then
 else
     echo "Cloning repository..."
     sudo mkdir -p /opt/gateway.hub
-    git clone https://github.com/onio-git/gateway.hub.git "$REPO_DIR"
+    git clone -b researching-architecture-flowpipe --single-branch https://github.com/onio-git/gateway.hub.git "$REPO_DIR"
 fi
 
 
@@ -44,7 +44,7 @@ sudo apt install -y python3 python3-pip python3-flask python3-waitress python3-b
                     network-manager dhcpcd dnsmasq iptables-persistent \
                     wireless-tools sudo net-tools python3-dbus python3-gi
 
-pip install flowpipe --break-system-packages
+pip install flowpipe --break-system-packages --no-input
 
 # Run any additional setup scripts
 if [ -f setup.sh ]; then
