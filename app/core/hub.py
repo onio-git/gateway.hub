@@ -219,8 +219,8 @@ class Hub:
             logging.info("Successfully updated hub location")
 
         flow_json = self.api.get_flow()
-        new_drawflow = _flow_etl(flow_json)
-        self.flow = ConfigurableWorkflow(new_drawflow)
+        # new_drawflow = _flow_etl(flow_json)
+        # self.flow = ConfigurableWorkflow(new_drawflow)
         # thread_flow = threading.Thread(target=flow.evaluate_loop, name="Test")
         # self.flow_manager.append({
         #     "flow": new_drawflow,
@@ -237,11 +237,11 @@ class Hub:
     def loop(self, auto_collect, period=5):
 
         # Initial scan
-        # self.scan_for_devices()
+        self.scan_for_devices()
         get_flow_delay = 0
         logging.info("Before Main loop")
         logging.info(f"Danh sach Flow: {self.flow_manager}")
-        self.flow.evaluate_loop()
+        # self.flow.evaluate_loop()
         # thread_flow = threading.Thread(target=self.flow.evaluate_loop, name="Test")
         # logging.info(f"Thread flow {thread_flow}")
         # thread_flow.start()
@@ -299,8 +299,8 @@ class Hub:
                 # a command from the server whenever a new flow is activated
                 if get_flow_delay > 3:
                     flow_json = self.api.get_flow()
-                    new_drawflow = _flow_etl(flow_json)
-                    self.flow = ConfigurableWorkflow(new_drawflow)
+                    # new_drawflow = _flow_etl(flow_json)
+                    # self.flow = ConfigurableWorkflow(new_drawflow)
                     # self.flow_manager.clear()
                     # self.flow_manager.append(flow)
                     get_flow_delay = 0
