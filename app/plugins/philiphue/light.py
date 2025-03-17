@@ -33,14 +33,16 @@ def percentage_to_brightness(percentage):
 
 def turn_on_light(event, metadata):
     logging.info(f"Turning on Philips Hue light-Mac address: D9:18:8C:77:8F:F3")
-    mac_address = "D9:18:8C:77:8F:F3"
+    mac_address = metadata['mac_address']
 
-    # start_time = time.perf_counter()
-
-    # Mô phỏng bật đèn
     async def async_write():
         client = await connect_and_pair(mac_address)
         if client:
+            # Đảm bảo client kết nối trước khi thực thi
+            if not await ensure_connected(client):
+                logging.error("Không thể tiếp tục vì không kết nối được.")
+                return
+
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
@@ -55,20 +57,22 @@ def turn_on_light(event, metadata):
                                 byte_value = characteristic_value.encode('utf-8')
                             elif isinstance(characteristic_value, int):
                                 byte_value = bytes([characteristic_value])
+                        # Kiểm tra lại kết nối trước mỗi lần write
+                        if not await ensure_connected(client):
+                            logging.error("Mất kết nối trong quá trình thực thi.")
+                            return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
                             logging.error(f"Failed to write characteristic: {e}")
 
     asyncio.run(async_write())
-    # end_time = time.perf_counter()
-    # logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
     return {"status": "light_on", "metadata": metadata}
 
 
 def turn_off_light(event, metadata):
     logging.info(f"Turning off Philips Hue light-Mac address: D9:18:8C:77:8F:F3")
-    mac_address = "D9:18:8C:77:8F:F3"
+    mac_address = metadata['mac_address']
 
     # start_time = time.perf_counter()
 
@@ -76,6 +80,10 @@ def turn_off_light(event, metadata):
     async def async_write():
         client = await connect_and_pair(mac_address)
         if client:
+            # Đảm bảo client kết nối trước khi thực thi
+            if not await ensure_connected(client):
+                logging.error("Không thể tiếp tục vì không kết nối được.")
+                return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
@@ -90,6 +98,10 @@ def turn_off_light(event, metadata):
                                 byte_value = characteristic_value.encode('utf-8')
                             elif isinstance(characteristic_value, int):
                                 byte_value = bytes([characteristic_value])
+
+                        if not await ensure_connected(client):
+                            logging.error("Mất kết nối trong quá trình thực thi.")
+                            return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -103,11 +115,14 @@ def turn_off_light(event, metadata):
 
 def change_color_and_brightness(event, metadata):
     logging.info(f"Change color and brightness Philips Hue light-Mac address: D9:18:8C:77:8F:F3")
-    mac_address = "D9:18:8C:77:8F:F3"
+    mac_address = metadata['mac_address']
 
     async def async_write():
         client = await connect_and_pair(mac_address)
         if client:
+            if not await ensure_connected(client):
+                logging.error("Không thể tiếp tục vì không kết nối được.")
+                return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
@@ -121,6 +136,10 @@ def change_color_and_brightness(event, metadata):
                             byte_value = hex_to_rgb(characteristic_value)
                         elif characteristic_uuid == BRIGHTNESS_CHARACTERISTIC:
                             byte_value = percentage_to_brightness(characteristic_value)
+
+                        if not await ensure_connected(client):
+                            logging.error("Mất kết nối trong quá trình thực thi.")
+                            return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -132,11 +151,14 @@ def change_color_and_brightness(event, metadata):
 
 def change_brightness(event, metadata):
     logging.info(f"Change and brightness Philips Hue light-Mac address: D9:18:8C:77:8F:F3")
-    mac_address = "D9:18:8C:77:8F:F3"
+    mac_address = metadata['mac_address']
 
     async def async_write():
         client = await connect_and_pair(mac_address)
         if client:
+            if not await ensure_connected(client):
+                logging.error("Không thể tiếp tục vì không kết nối được.")
+                return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
@@ -148,6 +170,10 @@ def change_brightness(event, metadata):
                         logging.info(f"Updating {characteristic_uuid} with {characteristic_value}")
                         if characteristic_uuid == BRIGHTNESS_CHARACTERISTIC:
                             byte_value = percentage_to_brightness(characteristic_value)
+
+                        if not await ensure_connected(client):
+                            logging.error("Mất kết nối trong quá trình thực thi.")
+                            return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -156,8 +182,13 @@ def change_brightness(event, metadata):
     asyncio.run(async_write())
     return {"status": "change_color_and_brightness", "metadata": metadata}
 
+
+# Biến toàn cục để theo dõi trạng thái kết nối
+connection_event = asyncio.Event()
 RECONNECT_DELAY = 5  # thời gian chờ giữa các lần reconnect (giây)
 _reconnect_in_progress = False  # flag để đảm bảo chỉ một reconnect chạy đồng thời
+
+
 async def reconnect(client: BleakClient):
     global _reconnect_in_progress
     if _reconnect_in_progress:
@@ -177,6 +208,7 @@ async def reconnect(client: BleakClient):
             # Nếu client đã kết nối, thoát vòng lặp
             if client.is_connected:
                 logging.info("Kết nối lại thành công!")
+                connection_event.set()
                 break
             logging.info(f"Chờ {RECONNECT_DELAY} giây trước khi thử lại...")
             await asyncio.sleep(RECONNECT_DELAY)
@@ -186,42 +218,48 @@ async def reconnect(client: BleakClient):
 
 def disconnected_callback(client: BleakClient):
     logging.warning(f"Đã bị ngắt kết nối với {client.address}. Bắt đầu reconnect...")
+    connection_event.clear()  # Đặt trạng thái chưa kết nối
     asyncio.create_task(reconnect(client))
 
 
 async def connect_and_pair(mac_address) -> BleakClient | None:
     start_time = time.perf_counter()
     client = BleakClient(mac_address, disconnected_callback=disconnected_callback)
-    try:
-        # Kết nối đến thiết bị
-        if not client.is_connected:
+    max_retries = 5  # Số lần thử tối đa
+    retry_delay = 2  # Thời gian chờ giữa các lần thử (giây)
+
+    for attempt in range(max_retries):
+        try:
             await client.connect()
-            if not client.is_connected:
-                logging.error(f"Failed to connect to {mac_address}.")
-                return None
+            if client.is_connected:
+                paired = await client.pair(protection_level=1)
+                if paired:
+                    logging.info("Pairing thành công!")
+                else:
+                    logging.warning("Pairing không thành công hoặc không cần thiết.")
+                end_time = time.perf_counter()
+                logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
+                connection_event.set()  # Đặt trạng thái kết nối ban đầu
+                return client
+            else:
+                logging.warning(f"Attempt {attempt + 1}: Failed to connect to {mac_address}.")
+        except Exception as e:
+            logging.error(f"Attempt {attempt + 1}: Error: {e}")
 
-        # Thực hiện pairing
-        paired = await client.pair(protection_level=1)
-        if paired:
-            logging.info("Pairing thành công!")
-        else:
-            logging.warning("Pairing không thành công hoặc không cần thiết.")
+        if attempt < max_retries - 1:
+            logging.info(f"Waiting {retry_delay} seconds before retrying...")
+            await asyncio.sleep(retry_delay)
 
-        # Kiểm tra lại kết nối sau khi pair
+    logging.error(f"Failed to connect after {max_retries} attempts.")
+    return None
+
+
+async def ensure_connected(client: BleakClient):
+    if not client.is_connected:
+        logging.info("Client không kết nối. Đang chờ kết nối lại...")
+        await reconnect(client)  # Thử kết nối lại
         if not client.is_connected:
-            await client.connect()
-            if not client.is_connected:
-                logging.error(f"Failed to reconnect after pairing.")
-                return None
-
-        # Trả về client nếu thành công
-        end_time = time.perf_counter()
-        logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
-        return client
-
-    except Exception as e:
-        logging.error(f"Error: {e}")
-        # Đóng kết nối nếu có lỗi
-        if client.is_connected:
-            await client.disconnect()
-        return None
+            logging.error("Không thể kết nối lại.")
+            return False
+    connection_event.set()  # Đảm bảo event được đặt khi kết nối thành công
+    return True
