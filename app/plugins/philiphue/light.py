@@ -39,15 +39,14 @@ def turn_on_light(event, metadata):
         client = await connect_and_pair(mac_address)
         if client:
             # Đảm bảo client kết nối trước khi thực thi
-            # if not await ensure_connected(client):
-            #     logging.error("Không thể tiếp tục vì không kết nối được.")
-            #     return
+            if not await ensure_connected(client):
+                logging.error("Không thể tiếp tục vì không kết nối được.")
+                return
 
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
                 for data_attribute in attributes:
-                    logging.info(f"Processing attribute: {data_attribute}")
                     characteristic_uuid = data_attribute.get("uuid", None)
                     characteristic_value = data_attribute.get("value", None)
                     if characteristic_uuid and characteristic_value is not None:
@@ -58,9 +57,9 @@ def turn_on_light(event, metadata):
                             elif isinstance(characteristic_value, int):
                                 byte_value = bytes([characteristic_value])
                         # Kiểm tra lại kết nối trước mỗi lần write
-                        # if not await ensure_connected(client):
-                        #     logging.error("Mất kết nối trong quá trình thực thi.")
-                        #     return
+                        if not await ensure_connected(client):
+                            logging.error("Mất kết nối trong quá trình thực thi.")
+                            return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -81,14 +80,13 @@ def turn_off_light(event, metadata):
         client = await connect_and_pair(mac_address)
         if client:
             # Đảm bảo client kết nối trước khi thực thi
-            # if not await ensure_connected(client):
-            #     logging.error("Không thể tiếp tục vì không kết nối được.")
-            #     return
+            if not await ensure_connected(client):
+                logging.error("Không thể tiếp tục vì không kết nối được.")
+                return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
                 for data_attribute in attributes:
-                    logging.info(f"Processing attribute: {data_attribute}")
                     characteristic_uuid = data_attribute.get("uuid", None)
                     characteristic_value = data_attribute.get("value", None)
                     if characteristic_uuid and characteristic_value is not None:
@@ -99,9 +97,9 @@ def turn_off_light(event, metadata):
                             elif isinstance(characteristic_value, int):
                                 byte_value = bytes([characteristic_value])
 
-                        # if not await ensure_connected(client):
-                        #     logging.error("Mất kết nối trong quá trình thực thi.")
-                        #     return
+                        if not await ensure_connected(client):
+                            logging.error("Mất kết nối trong quá trình thực thi.")
+                            return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -120,14 +118,13 @@ def change_color_and_brightness(event, metadata):
     async def async_write():
         client = await connect_and_pair(mac_address)
         if client:
-            # if not await ensure_connected(client):
-            #     logging.error("Không thể tiếp tục vì không kết nối được.")
-            #     return
+            if not await ensure_connected(client):
+                logging.error("Không thể tiếp tục vì không kết nối được.")
+                return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
                 for data_attribute in attributes:
-                    logging.info(f"Processing attribute: {data_attribute}")
                     characteristic_uuid = data_attribute.get("uuid", None)
                     characteristic_value = data_attribute.get("value", None)
                     if characteristic_uuid and characteristic_value is not None:
@@ -137,9 +134,9 @@ def change_color_and_brightness(event, metadata):
                         elif characteristic_uuid == BRIGHTNESS_CHARACTERISTIC:
                             byte_value = percentage_to_brightness(characteristic_value)
 
-                        # if not await ensure_connected(client):
-                        #     logging.error("Mất kết nối trong quá trình thực thi.")
-                        #     return
+                        if not await ensure_connected(client):
+                            logging.error("Mất kết nối trong quá trình thực thi.")
+                            return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -156,14 +153,13 @@ def change_brightness(event, metadata):
     async def async_write():
         client = await connect_and_pair(mac_address)
         if client:
-            # if not await ensure_connected(client):
-            #     logging.error("Không thể tiếp tục vì không kết nối được.")
-            #     return
+            if not await ensure_connected(client):
+                logging.error("Không thể tiếp tục vì không kết nối được.")
+                return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
                 for data_attribute in attributes:
-                    logging.info(f"Processing attribute: {data_attribute}")
                     characteristic_uuid = data_attribute.get("uuid", None)
                     characteristic_value = data_attribute.get("value", None)
                     if characteristic_uuid and characteristic_value is not None:
@@ -171,9 +167,9 @@ def change_brightness(event, metadata):
                         if characteristic_uuid == BRIGHTNESS_CHARACTERISTIC:
                             byte_value = percentage_to_brightness(characteristic_value)
 
-                        # if not await ensure_connected(client):
-                        #     logging.error("Mất kết nối trong quá trình thực thi.")
-                        #     return
+                        if not await ensure_connected(client):
+                            logging.error("Mất kết nối trong quá trình thực thi.")
+                            return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -230,7 +226,6 @@ async def connect_and_pair(mac_address) -> BleakClient | None:
     for attempt in range(max_retries):
         # try:
         is_connected = await client.connect()
-        logging.info(f"Test : {is_connected}")
         if is_connected:
             # paired = await client.pair(protection_level=1)
             # if paired:
