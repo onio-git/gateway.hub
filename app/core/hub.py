@@ -45,7 +45,7 @@ def _outputs_connection(next_type_output: str, next_node_id: str) -> dict:
 def _flow_etl(flow_json: dict) -> dict:
     ordered_flow = {k: flow_json["flow"][k] for k in sorted(flow_json["flow"].keys(), key=int)}
 
-    logging.info(f"Main Flow: {ordered_flow}")
+    # logging.info(f"Main Flow: {ordered_flow}")
     new_drawflow = {
         "drawflow": {
             "Home": {
@@ -114,7 +114,7 @@ def _flow_etl(flow_json: dict) -> dict:
                     ],
                 })
             case "color":
-                logging.info(node_data['data'])
+                # logging.info(node_data['data'])
                 metadata.update({
                     "plugin_module": "plugins.philiphue.light",
                     "plugin_function": "change_color_and_brightness",
@@ -242,8 +242,8 @@ class Hub:
         # Initial scan
         self.scan_for_devices()
         get_flow_delay = 0
-        logging.info("Before Main loop")
-        logging.info(f"Danh sach Flow: {self.flow_manager}")
+        # logging.info("Before Main loop")
+        # logging.info(f"Danh sach Flow: {self.flow_manager}")
         # self.flow.evaluate_loop()
         if self.flow:
             thread_flow = threading.Thread(target=self.flow.evaluate_loop, name="Test")
@@ -255,7 +255,7 @@ class Hub:
         #     flow['thread'].start()
         while True:
             try:
-                logging.info("Main loop")
+                # logging.info("Main loop")
                 if self.command == "rebooting":
                     logging.info("Rebooting...")
                     self.shutdown()

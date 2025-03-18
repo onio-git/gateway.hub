@@ -39,9 +39,9 @@ def turn_on_light(event, metadata):
         client = await connect_and_pair(mac_address)
         if client:
             # Đảm bảo client kết nối trước khi thực thi
-            if not await ensure_connected(client):
-                logging.error("Không thể tiếp tục vì không kết nối được.")
-                return
+            # if not await ensure_connected(client):
+            #     logging.error("Không thể tiếp tục vì không kết nối được.")
+            #     return
 
             byte_value = bytes([0])
             if isinstance(metadata, dict):
@@ -58,9 +58,9 @@ def turn_on_light(event, metadata):
                             elif isinstance(characteristic_value, int):
                                 byte_value = bytes([characteristic_value])
                         # Kiểm tra lại kết nối trước mỗi lần write
-                        if not await ensure_connected(client):
-                            logging.error("Mất kết nối trong quá trình thực thi.")
-                            return
+                        # if not await ensure_connected(client):
+                        #     logging.error("Mất kết nối trong quá trình thực thi.")
+                        #     return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -81,9 +81,9 @@ def turn_off_light(event, metadata):
         client = await connect_and_pair(mac_address)
         if client:
             # Đảm bảo client kết nối trước khi thực thi
-            if not await ensure_connected(client):
-                logging.error("Không thể tiếp tục vì không kết nối được.")
-                return
+            # if not await ensure_connected(client):
+            #     logging.error("Không thể tiếp tục vì không kết nối được.")
+            #     return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
@@ -99,9 +99,9 @@ def turn_off_light(event, metadata):
                             elif isinstance(characteristic_value, int):
                                 byte_value = bytes([characteristic_value])
 
-                        if not await ensure_connected(client):
-                            logging.error("Mất kết nối trong quá trình thực thi.")
-                            return
+                        # if not await ensure_connected(client):
+                        #     logging.error("Mất kết nối trong quá trình thực thi.")
+                        #     return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -114,15 +114,15 @@ def turn_off_light(event, metadata):
 
 
 def change_color_and_brightness(event, metadata):
-    logging.info(f"Change color and brightness Philips Hue light-Mac address: D9:18:8C:77:8F:F3")
+    logging.info(f"Change color and brightness Philips Hue light-Mac address: {metadata['mac_address']}")
     mac_address = metadata['mac_address']
 
     async def async_write():
         client = await connect_and_pair(mac_address)
         if client:
-            if not await ensure_connected(client):
-                logging.error("Không thể tiếp tục vì không kết nối được.")
-                return
+            # if not await ensure_connected(client):
+            #     logging.error("Không thể tiếp tục vì không kết nối được.")
+            #     return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
@@ -137,9 +137,9 @@ def change_color_and_brightness(event, metadata):
                         elif characteristic_uuid == BRIGHTNESS_CHARACTERISTIC:
                             byte_value = percentage_to_brightness(characteristic_value)
 
-                        if not await ensure_connected(client):
-                            logging.error("Mất kết nối trong quá trình thực thi.")
-                            return
+                        # if not await ensure_connected(client):
+                        #     logging.error("Mất kết nối trong quá trình thực thi.")
+                        #     return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -156,9 +156,9 @@ def change_brightness(event, metadata):
     async def async_write():
         client = await connect_and_pair(mac_address)
         if client:
-            if not await ensure_connected(client):
-                logging.error("Không thể tiếp tục vì không kết nối được.")
-                return
+            # if not await ensure_connected(client):
+            #     logging.error("Không thể tiếp tục vì không kết nối được.")
+            #     return
             byte_value = bytes([0])
             if isinstance(metadata, dict):
                 attributes = metadata.get("attributes", {})
@@ -171,9 +171,9 @@ def change_brightness(event, metadata):
                         if characteristic_uuid == BRIGHTNESS_CHARACTERISTIC:
                             byte_value = percentage_to_brightness(characteristic_value)
 
-                        if not await ensure_connected(client):
-                            logging.error("Mất kết nối trong quá trình thực thi.")
-                            return
+                        # if not await ensure_connected(client):
+                        #     logging.error("Mất kết nối trong quá trình thực thi.")
+                        #     return
                         try:
                             await client.write_gatt_char(characteristic_uuid, byte_value, response=True)
                         except Exception as e:
@@ -218,37 +218,37 @@ async def reconnect(client: BleakClient):
 
 def disconnected_callback(client: BleakClient):
     logging.warning(f"Đã bị ngắt kết nối với {client.address}. Bắt đầu reconnect...")
-    connection_event.clear()  # Đặt trạng thái chưa kết nối
-    asyncio.create_task(reconnect(client))
+    # connection_event.clear()  # Đặt trạng thái chưa kết nối
+    # asyncio.create_task(reconnect(client))
 
 
 async def connect_and_pair(mac_address) -> BleakClient | None:
-    start_time = time.perf_counter()
-    client = BleakClient(mac_address, disconnected_callback=disconnected_callback)
+    # start_time = time.perf_counter()
+    client = BleakClient(mac_address)
     max_retries = 5  # Số lần thử tối đa
     retry_delay = 2  # Thời gian chờ giữa các lần thử (giây)
-
     for attempt in range(max_retries):
-        try:
-            await client.connect()
-            if client.is_connected:
-                paired = await client.pair(protection_level=1)
-                if paired:
-                    logging.info("Pairing thành công!")
-                else:
-                    logging.warning("Pairing không thành công hoặc không cần thiết.")
-                end_time = time.perf_counter()
-                logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
-                connection_event.set()  # Đặt trạng thái kết nối ban đầu
-                return client
-            else:
-                logging.warning(f"Attempt {attempt + 1}: Failed to connect to {mac_address}.")
-        except Exception as e:
-            logging.error(f"Attempt {attempt + 1}: Error: {e}")
+        # try:
+        is_connected = await client.connect()
+        logging.info(f"Test : {is_connected}")
+        if is_connected:
+            # paired = await client.pair(protection_level=1)
+            # if paired:
+            #     logging.info("Pairing thành công!")
+            # else:
+            #     logging.warning("Pairing không thành công hoặc không cần thiết.")
+            # end_time = time.perf_counter()
+            # logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
+            # connection_event.set()  # Đặt trạng thái kết nối ban đầu
+            return client
+        else:
+            logging.warning(f"Attempt {attempt + 1}: Failed to connect to {mac_address}.")
+        # except Exception as e:
+        #     logging.error(f"Attempt {attempt + 1}: Error: {e}")
 
-        if attempt < max_retries - 1:
-            logging.info(f"Waiting {retry_delay} seconds before retrying...")
-            await asyncio.sleep(retry_delay)
+            if attempt < max_retries - 1:
+                logging.info(f"Waiting {retry_delay} seconds before retrying...")
+                await asyncio.sleep(retry_delay)
 
     logging.error(f"Failed to connect after {max_retries} attempts.")
     return None
@@ -261,5 +261,5 @@ async def ensure_connected(client: BleakClient):
         if not client.is_connected:
             logging.error("Không thể kết nối lại.")
             return False
-    connection_event.set()  # Đảm bảo event được đặt khi kết nối thành công
+    # connection_event.set()  # Đảm bảo event được đặt khi kết nối thành công
     return True
