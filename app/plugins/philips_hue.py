@@ -400,6 +400,8 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
             child.expect('#')
             child.sendline('default-agent')
             child.expect('#')
+            child.sendline('scan on')
+            child.expect('#')
 
             # Check if the device is already paired and trusted
             child.sendline(f'info {mac_address}')
