@@ -79,18 +79,19 @@ class philips_hue(PluginInterface):
 
     async def run_devices(self):
         for _, device in self.devices.items():
+
             # If not connected, attempt to connect and read
             if device.connection_attempts >= 3:
                 logging.error(f"Exceeded connection attempts for {device.mac_address} - {device.device_name}")
                 continue
-            # data = await device.connect_and_read()
-            # if not data:
-            #     logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
-            #     device.connection_attempts += 1
-            #     continue
-            #
-            # else:
-            #     logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
+            data = await device.connect_and_read()
+            if not data:
+                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+                device.connection_attempts += 1
+                continue
+
+            else:
+                logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
 
 
     def display_devices(self) -> None:
@@ -400,13 +401,11 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
             child.expect('#')
             child.sendline('default-agent')
             child.expect('#')
-            child.sendline('scan on')
-            child.expect('#')
 
             # Check if the device is already paired and trusted
             child.sendline(f'info {mac_address}')
             index = child.expect([
-                f"Device {mac_address} not available",
+                f"Device {mac_address} not found",
                 f"Paired: no",
                 f"Paired: yes",
                 pexpect.EOF,
@@ -490,8 +489,6 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
                 return False
 
             # Exit bluetoothctl
-            child.sendline('scan off')
-            child.expect('#')
             child.sendline('exit')
             child.close()
             return True
