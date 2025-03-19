@@ -84,14 +84,14 @@ class philips_hue(PluginInterface):
             if device.connection_attempts >= 3:
                 logging.error(f"Exceeded connection attempts for {device.mac_address} - {device.device_name}")
                 continue
-            data = await device.connect_and_read()
-            if not data:
-                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
-                device.connection_attempts += 1
-                continue
-
-            else:
-                logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
+            # data = await device.connect_and_read()
+            # if not data:
+            #     logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+            #     device.connection_attempts += 1
+            #     continue
+            #
+            # else:
+            #     logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
 
 
     def display_devices(self) -> None:
@@ -431,7 +431,8 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
                 logging.error(f"Unexpected response while checking info for {mac_address}")
                 child.sendline('exit')
                 child.close()
-                return False
+                continue
+                # return False
 
             # Initiate pairing only if not already paired
             child.sendline(f'pair {mac_address}')
@@ -450,9 +451,13 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
                 logging.info(f"Successfully paired with {mac_address}")
             elif index in [2, 3]:
                 logging.error(f"Failed to pair with {mac_address}")
+                await asyncio.sleep(delay)
                 child.sendline('exit')
                 child.close()
-                return False
+                continue
+                # child.sendline('exit')
+                # child.close()
+                # return False
             elif index == 4:
                 # Handle PIN code request if needed
                 pin_code = '0000'  # Replace with the actual PIN if required

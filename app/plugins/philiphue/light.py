@@ -224,22 +224,22 @@ async def connect_and_pair(mac_address) -> BleakClient | None:
     max_retries = 5  # Số lần thử tối đa
     retry_delay = 2  # Thời gian chờ giữa các lần thử (giây)
     for attempt in range(max_retries):
-        # try:
-        is_connected = await client.connect()
-        if is_connected:
-            # paired = await client.pair(protection_level=1)
-            # if paired:
-            #     logging.info("Pairing thành công!")
-            # else:
-            #     logging.warning("Pairing không thành công hoặc không cần thiết.")
-            # end_time = time.perf_counter()
-            # logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
-            # connection_event.set()  # Đặt trạng thái kết nối ban đầu
-            return client
-        else:
-            logging.warning(f"Attempt {attempt + 1}: Failed to connect to {mac_address}.")
-        # except Exception as e:
-        #     logging.error(f"Attempt {attempt + 1}: Error: {e}")
+        try:
+            is_connected = await client.connect()
+            if is_connected:
+                # paired = await client.pair(protection_level=1)
+                # if paired:
+                #     logging.info("Pairing thành công!")
+                # else:
+                #     logging.warning("Pairing không thành công hoặc không cần thiết.")
+                # end_time = time.perf_counter()
+                # logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
+                # connection_event.set()  # Đặt trạng thái kết nối ban đầu
+                return client
+            else:
+                logging.warning(f"Attempt {attempt + 1}: Failed to connect to {mac_address}.")
+        except Exception as e:
+            logging.error(f"Attempt {attempt + 1}: Error: {e}")
 
             if attempt < max_retries - 1:
                 logging.info(f"Waiting {retry_delay} seconds before retrying...")
