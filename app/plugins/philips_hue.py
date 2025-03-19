@@ -83,14 +83,14 @@ class philips_hue(PluginInterface):
             if device.connection_attempts >= 3:
                 logging.error(f"Exceeded connection attempts for {device.mac_address} - {device.device_name}")
                 continue
-            # data = await device.connect_and_read()
-            # if not data:
-            #     logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
-            #     device.connection_attempts += 1
-            #     continue
-            #
-            # else:
-            #     logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
+            data = await device.connect_and_read()
+            if not data:
+                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+                device.connection_attempts += 1
+                continue
+
+            else:
+                logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
 
 
     def display_devices(self) -> None:
@@ -209,20 +209,20 @@ class philips_hue(PluginInterface):
                     logging.info(f"Device {self.mac_address} is already paired and trusted.")
 
                 # Step 2: Connect and Read Data using Bleak
-                async with BleakClient(self.mac_address) as client:
-                    if not client.is_connected:
-                        logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
-                        return None
-
-                    self.is_connected = True
-                    logging.info(f"Connected to {self.mac_address} - {self.device_name}")
-                    self.connection_attempts = 0  # Reset connection attempts
-
-                    # Perform operations
-                    state = await self.read_light_state(client)
-                    # await asyncio.sleep(5.0)
-                    self.is_connected = False  # Reset after operations
-                    return state
+                # async with BleakClient(self.mac_address) as client:
+                #     if not client.is_connected:
+                #         logging.error(f"Bleak failed to connect to {self.mac_address} - {self.device_name}")
+                #         return None
+                #
+                #     self.is_connected = True
+                #     logging.info(f"Connected to {self.mac_address} - {self.device_name}")
+                #     self.connection_attempts = 0  # Reset connection attempts
+                #
+                #     # Perform operations
+                #     state = await self.read_light_state(client)
+                #     # await asyncio.sleep(5.0)
+                #     self.is_connected = False  # Reset after operations
+                #     return state
 
             except Exception as e:
                 logging.error(f"Error in connect_and_read: {e}")
