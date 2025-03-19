@@ -406,7 +406,7 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
             # Check if the device is already paired and trusted
             child.sendline(f'info {mac_address}')
             index = child.expect([
-                f"Device {mac_address} not found",
+                f"Device {mac_address} not available",
                 f"Paired: no",
                 f"Paired: yes",
                 pexpect.EOF,

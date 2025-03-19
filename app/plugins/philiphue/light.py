@@ -227,11 +227,11 @@ async def connect_and_pair(mac_address) -> BleakClient | None:
         # try:
         is_connected = await client.connect()
         if is_connected:
-            # paired = await client.pair(protection_level=1)
-            # if paired:
-            #     logging.info("Pairing thành công!")
-            # else:
-            #     logging.warning("Pairing không thành công hoặc không cần thiết.")
+            paired = await client.pair(protection_level=1)
+            if paired:
+                logging.info("Pairing thành công!")
+            else:
+                logging.warning("Pairing không thành công hoặc không cần thiết.")
             # end_time = time.perf_counter()
             # logging.info(f"Pairing and trusting took {end_time - start_time} seconds")
             # connection_event.set()  # Đặt trạng thái kết nối ban đầu
