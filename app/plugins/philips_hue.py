@@ -84,14 +84,14 @@ class philips_hue(PluginInterface):
                 logging.error(f"Exceeded connection attempts for {device.mac_address} - {device.device_name}")
                 continue
             data = await device.connect_and_read()
-            # await device.update_attributes(system_command=self.command, meta_data=self.meta_data)
-            # if not data:
-            #     logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
-            #     device.connection_attempts += 1
-            #     continue
-            #
-            # else:
-            #     logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
+            if not data:
+                logging.error(f"Failed to read data from {device.mac_address} - {device.device_name}")
+                device.connection_attempts += 1
+                continue
+
+            else:
+                logging.info(f"Data from {device.mac_address} - {device.device_name}: {data}")
+
 
     def display_devices(self) -> None:
         for id, device in self.devices.items():
@@ -192,7 +192,7 @@ class philips_hue(PluginInterface):
             except Exception as e:
                 logging.error(f"Error in connect_and_read: {e}")
 
-        async def connect_and_read(self) -> dict:
+        async def connect_and_read(self):
             try:
                 # Step 1: Pair and Trust the Device
                 if not self.is_paired or not self.is_trusted:
