@@ -32,7 +32,7 @@ def percentage_to_brightness(percentage):
 
 
 def turn_on_light(event, metadata):
-    logging.info(f"Turning on Philips Hue light-Mac address: D9:18:8C:77:8F:F3")
+    logging.info(f"Turning on Philips Hue light-Mac address: {metadata['mac_address']}")
     mac_address = metadata['mac_address']
 
     async def async_write():
@@ -70,7 +70,7 @@ def turn_on_light(event, metadata):
 
 
 def turn_off_light(event, metadata):
-    logging.info(f"Turning off Philips Hue light-Mac address: D9:18:8C:77:8F:F3")
+    logging.info(f"Turning off Philips Hue light-Mac address: {metadata['mac_address']}")
     mac_address = metadata['mac_address']
 
     # start_time = time.perf_counter()
@@ -147,7 +147,7 @@ def change_color_and_brightness(event, metadata):
 
 
 def change_brightness(event, metadata):
-    logging.info(f"Change and brightness Philips Hue light-Mac address: D9:18:8C:77:8F:F3")
+    logging.info(f"Change and brightness Philips Hue light-Mac address: {metadata['mac_address']}")
     mac_address = metadata['mac_address']
 
     async def async_write():
