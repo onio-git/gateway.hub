@@ -490,6 +490,8 @@ async def pair_and_trust(mac_address, retries=3, delay=5):
                 return False
 
             # Exit bluetoothctl
+            child.sendline('scan off')
+            child.expect('#')
             child.sendline('exit')
             child.close()
             return True
