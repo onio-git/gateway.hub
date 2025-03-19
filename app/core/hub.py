@@ -281,17 +281,18 @@ class Hub:
                     self.execute_plugins()
                     pass
 
-                # elif self.command.startswith("load_plugin"):
-                #     plugin_name = self.command.split(":")[1]
-                #     self.load_plugin(plugin_name)
-                #
-                # elif self.command.startswith("unload_plugin"):
-                #     plugin_name = self.command.split(":")[1]
-                #     for plugin in self.plugins:
-                #         if plugin.__class__.__name__ == plugin_name:
-                #             self.plugins.remove(plugin)
-                #             logging.info("Plugin unloaded: " + plugin_name)
-                #             break
+                elif self.command.startswith("load_plugin"):
+                    plugin_name = self.command.split(":")[1]
+                    self.load_plugin(plugin_name)
+
+                elif self.command.startswith("unload_plugin"):
+                    plugin_name = self.command.split(":")[1]
+                    for plugin in self.plugins:
+                        if plugin.__class__.__name__ == plugin_name:
+                            self.plugins.remove(plugin)
+                            logging.info("Plugin unloaded: " + plugin_name)
+                            break
+
 
                 self.command = ""
                 time.sleep(period)
